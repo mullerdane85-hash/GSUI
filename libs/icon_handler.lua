@@ -24,10 +24,10 @@ function icon_handler.ensure_icon(item_id)
     if not item_id or item_id == 0 then return false end
     local path = icon_handler.get_icon_path(item_id)
     if not windower.file_exists(path) then
-        local ok, err = pcall(icon_extractor.item_by_id, item_id, path)
-        if not ok then
-            return false
-        end
+        -- pcall will catch the yield error (Lua 5.1 can't yield across pcall),
+        -- but the BMP is already written and closed before the yield, so
+        -- ignore the pcall result and just check if the file exists.
+        pcall(icon_extractor.item_by_id, item_id, path)
     end
     return windower.file_exists(path)
 end
