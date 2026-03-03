@@ -89,6 +89,8 @@ local elements = {
     generate_btn_bg = nil, generate_btn_text = nil,
     remove_all_btn_bg = nil, remove_all_btn_text = nil,
     reequip_btn_bg = nil, reequip_btn_text = nil,
+    save_btn_bg = nil, save_btn_text = nil,
+    load_btn_bg = nil, load_btn_text = nil,
     status_text = nil,
     drag_icon = nil,
     -- Stat panel
@@ -163,6 +165,12 @@ local state = {
     kb_selected_item = nil,
     kb_selected_inv_index = nil,
     kb_mode_rect = {},
+    -- Slot filter
+    slot_filter = nil,
+    -- Save/load
+    save_btn_rect = {},
+    saved_sets = {},
+    saved_dropdown_open = false,
 }
 
 -- Dimensions
@@ -182,7 +190,7 @@ local function calc_dimensions()
     inv_grid_h = CELL * INV_VISIBLE_ROWS
     local right_h = LABEL_H + inv_grid_h + SCROLL_BTN_H + 2 + FILTER_BAR_H
     content_w = left_panel_w + PANEL_GAP + right_panel_w + PANEL_GAP + TOOLTIP_W + PANEL_GAP + STAT_W
-    content_h = math.max(left_panel_h + (BTN_H + SLOT_PAD) * 3, right_h)
+    content_h = math.max(left_panel_h + (BTN_H + SLOT_PAD) * 4, right_h)
     total_w = BORDER + SLOT_PAD + content_w + SLOT_PAD + BORDER
     total_h = BORDER + TITLE_BAR_H + SLOT_PAD + content_h + SLOT_PAD + BORDER
 end
@@ -261,10 +269,11 @@ function ui.build()
     elements.title_text = make_text('GSUI', tb_x + 8, tb_y + 7, 11, 200, 200, 230, true)
     elements.title_text:show()
 
-    -- Tab buttons
+    -- Tab buttons (leave 65px for mode toggle on right)
     local tab_x = tb_x + 55
     local tab_y = tb_y + 3
-    local tab_w = math.floor((tb_w - 60) / 2)
+    local tab_avail = tb_w - 55 - 65  -- GSUI label left, mode toggle right
+    local tab_w = math.floor((tab_avail - 4) / 2)  -- 4px gap between tabs
     local tab_h = TITLE_BAR_H - 6
 
     state.tab_gs_rect = { x = tab_x, y = tab_y, w = tab_w, h = tab_h }
@@ -347,6 +356,23 @@ function ui.build()
     elements.reequip_btn_bg:show()
     elements.reequip_btn_text = make_text('Re-equip', btn_x + 36, btn3_y + 5, 11, 255, 255, 255, true)
     elements.reequip_btn_text:show()
+
+    -- Save / Load buttons
+    local half_btn = math.floor((BTN_W - SLOT_PAD) / 2)
+    local btn4_y = btn3_y + BTN_H + SLOT_PAD
+    elements.save_btn_bg = make_bg(btn_x, btn4_y, half_btn, BTN_H, 220, 100, 80, 35)
+    elements.save_btn_bg:show()
+    elements.save_btn_text = make_text('Save', btn_x + math.floor(half_btn / 2) - 14, btn4_y + 5, 11, 255, 255, 255, true)
+    elements.save_btn_text:show()
+
+    local load_x = btn_x + half_btn + SLOT_PAD
+    elements.load_btn_bg = make_bg(load_x, btn4_y, half_btn, BTN_H, 220, 35, 80, 100)
+    elements.load_btn_bg:show()
+    elements.load_btn_text = make_text('Load', load_x + math.floor(half_btn / 2) - 14, btn4_y + 5, 11, 255, 255, 255, true)
+    elements.load_btn_text:show()
+
+    state.save_btn_rect = { x = btn_x, y = btn4_y, w = half_btn, h = BTN_H }
+    state.load_btn_rect = { x = load_x, y = btn4_y, w = half_btn, h = BTN_H }
 
     -- === ORGANIZER LEFT PANEL (hidden by default) ===
     local org_x = eq_x
@@ -554,6 +580,10 @@ function ui.build()
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
         hide_element(elements.reequip_btn_text)
+        hide_element(elements.save_btn_bg)
+        hide_element(elements.save_btn_text)
+        hide_element(elements.load_btn_bg)
+        hide_element(elements.load_btn_text)
         hide_element(elements.status_text)
         for _, lbl in pairs(elements.equip_labels) do
             hide_element(lbl)
@@ -714,6 +744,55 @@ function ui.get_active_filter()
     return state.filter_presets[1] or { name = 'All', pattern = nil }
 end
 
+-- === SLOT FILTER ===
+
+function ui.set_slot_filter(slot_name)
+    state.slot_filter = slot_name
+    -- Highlight the filtered slot with a colored border
+    for sn, icon_data in pairs(elements.equip_icons) do
+        local lbl = elements.equip_labels[sn]
+        if sn == slot_name then
+            if lbl then lbl:color(255, 200, 50) end
+        else
+            if lbl then lbl:color(160, 160, 200) end
+        end
+    end
+end
+
+function ui.clear_slot_filter()
+    state.slot_filter = nil
+    -- Reset all slot label colors
+    for sn, _ in pairs(elements.equip_icons) do
+        local lbl = elements.equip_labels[sn]
+        if lbl then lbl:color(160, 160, 200) end
+    end
+end
+
+function ui.get_slot_filter()
+    return state.slot_filter
+end
+
+function ui.get_slot_display_name(slot_name)
+    local scanner = require('libs/inventory_scanner')
+    return scanner.get_slot_display_name(slot_name)
+end
+
+-- === KB HELPERS ===
+
+function ui.get_kb_focus()
+    return state.kb_focus
+end
+
+function ui.get_kb_equip_slot()
+    if not equip_nav_grid[state.kb_equip_row] then return nil end
+    return equip_nav_grid[state.kb_equip_row][state.kb_equip_col]
+end
+
+function ui.get_equip_icon_data(slot_name)
+    if not slot_name then return nil end
+    return elements.equip_icons[slot_name]
+end
+
 -- === DATA UPDATES ===
 
 function ui.update_equipment(equipment_data)
@@ -820,7 +899,9 @@ function ui.update_tooltip(item_info)
     if not elements.tooltip_text then return end
     if item_info then
         local scanner = require('libs/inventory_scanner')
-        local text = scanner.build_tooltip_text(item_info)
+        local active_preset = state.filter_presets[state.active_filter]
+        local highlight = active_preset and active_preset.pattern or nil
+        local text = scanner.build_tooltip_text(item_info, highlight)
         state.tooltip_lines = split_lines(text)
         state.tooltip_scroll = 0
         render_scrolled(elements.tooltip_text, state.tooltip_lines, state.tooltip_scroll, state.tooltip_max_lines)
@@ -969,6 +1050,12 @@ end
 -- === HIT TESTING ===
 
 function ui.hit_test(mx, my)
+    -- KB mode toggle (on title bar — check before tabs)
+    local km = state.kb_mode_rect
+    if km and km.x and mx >= km.x and mx <= km.x + km.w and my >= km.y and my <= km.y + km.h then
+        return { type = 'kb_mode_toggle' }
+    end
+
     -- Tab buttons (always active)
     local tg = state.tab_gs_rect
     if tg and tg.x and mx >= tg.x and mx <= tg.x + tg.w and my >= tg.y and my <= tg.y + tg.h then
@@ -1058,6 +1145,15 @@ function ui.hit_test(mx, my)
         if mx >= bx and mx <= bx + BTN_W and my >= btn3_y and my <= btn3_y + BTN_H then
             return { type = 'reequip_btn' }
         end
+        -- Save / Load buttons
+        local sr = state.save_btn_rect
+        if sr and sr.x and mx >= sr.x and mx <= sr.x + sr.w and my >= sr.y and my <= sr.y + sr.h then
+            return { type = 'save_btn' }
+        end
+        local lr = state.load_btn_rect
+        if lr and lr.x and mx >= lr.x and mx <= lr.x + lr.w and my >= lr.y and my <= lr.y + lr.h then
+            return { type = 'load_btn' }
+        end
     end
 
     -- Scroll buttons
@@ -1100,12 +1196,6 @@ function ui.hit_test(mx, my)
     local sr2 = state.stat_rect
     if sr2 and sr2.x and mx >= sr2.x and mx <= sr2.x + sr2.w and my >= sr2.y and my <= sr2.y + sr2.h then
         return { type = 'stat_panel' }
-    end
-
-    -- KB mode toggle (on title bar)
-    local km = state.kb_mode_rect
-    if km and km.x and mx >= km.x and mx <= km.x + km.w and my >= km.y and my <= km.y + km.h then
-        return { type = 'kb_mode_toggle' }
     end
 
     -- Title bar for window dragging
@@ -1217,6 +1307,10 @@ function ui.show()
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
         show_element(elements.reequip_btn_text)
+        show_element(elements.save_btn_bg)
+        show_element(elements.save_btn_text)
+        show_element(elements.load_btn_bg)
+        show_element(elements.load_btn_text)
         show_element(elements.status_text)
         for _, lbl in pairs(elements.equip_labels) do
             show_element(lbl)
@@ -1267,6 +1361,10 @@ function ui.hide()
     hide_element(elements.remove_all_btn_text)
     hide_element(elements.reequip_btn_bg)
     hide_element(elements.reequip_btn_text)
+    hide_element(elements.save_btn_bg)
+    hide_element(elements.save_btn_text)
+    hide_element(elements.load_btn_bg)
+    hide_element(elements.load_btn_text)
     hide_element(elements.status_text)
     hide_element(elements.drag_icon)
     hide_element(elements.tab_gs_bg)
@@ -1383,6 +1481,10 @@ function ui.destroy()
     destroy_element(elements.remove_all_btn_text)
     destroy_element(elements.reequip_btn_bg)
     destroy_element(elements.reequip_btn_text)
+    destroy_element(elements.save_btn_bg)
+    destroy_element(elements.save_btn_text)
+    destroy_element(elements.load_btn_bg)
+    destroy_element(elements.load_btn_text)
     destroy_element(elements.scroll_up)
     destroy_element(elements.scroll_down)
     destroy_element(elements.drag_icon)
@@ -1429,6 +1531,8 @@ function ui.destroy()
         generate_btn_bg = nil, generate_btn_text = nil,
         remove_all_btn_bg = nil, remove_all_btn_text = nil,
         reequip_btn_bg = nil, reequip_btn_text = nil,
+        save_btn_bg = nil, save_btn_text = nil,
+        load_btn_bg = nil, load_btn_text = nil,
         scroll_up = nil, scroll_down = nil, drag_icon = nil,
         filter_dropdown = nil, filter_menu = nil, filter_menu_items = {},
         equip_icons = {}, inv_icons = {}, equip_labels = {},
@@ -1476,6 +1580,10 @@ function ui.set_mode(mode)
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
         show_element(elements.reequip_btn_text)
+        show_element(elements.save_btn_bg)
+        show_element(elements.save_btn_text)
+        show_element(elements.load_btn_bg)
+        show_element(elements.load_btn_text)
         show_element(elements.status_text)
         for _, lbl in pairs(elements.equip_labels) do
             show_element(lbl)
@@ -1502,6 +1610,10 @@ function ui.set_mode(mode)
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
         hide_element(elements.reequip_btn_text)
+        hide_element(elements.save_btn_bg)
+        hide_element(elements.save_btn_text)
+        hide_element(elements.load_btn_bg)
+        hide_element(elements.load_btn_text)
         hide_element(elements.status_text)
         for _, lbl in pairs(elements.equip_labels) do
             hide_element(lbl)

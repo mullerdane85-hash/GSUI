@@ -115,8 +115,8 @@ local item_by_id = function (id, output_path)
 
     local f = io.open(output_path, 'wb')
     f:write(bmp)
-    coroutine.yield()
     f:close()
+    coroutine.yield()
 end
 icon_extractor.item_by_id = item_by_id
 
@@ -203,8 +203,8 @@ local buff_by_id = function (id, output_path)
 
     local f = io.open(output_path, 'wb')
     f:write(bmp)
-    coroutine.yield()
     f:close()
+    coroutine.yield()
 end
 icon_extractor.buff_by_id = buff_by_id
 

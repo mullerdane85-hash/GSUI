@@ -1,5 +1,5 @@
 _addon.name = 'GSUI'
-_addon.version = '1.1.0'
+_addon.version = '1.2.0'
 _addon.author = 'GSUI'
 _addon.commands = { 'gsui' }
 
@@ -64,16 +64,52 @@ local function scan_all_inventory()
     return all_items
 end
 
+-- Build stats from custom set and update the stat panel
+local function update_custom_stats()
+    local slots = set_gen.get_all_slots()
+    local eq = {}
+    for slot_name, item in pairs(slots) do
+        eq[slot_name] = { item = item }
+    end
+    local totals = stat_parser.calc_totals(eq)
+    local summary = stat_parser.format_summary(totals)
+    ui.update_stat_text(summary)
+end
+
 -- Apply current filter to cached inventory and update UI
 local function apply_filter()
     local preset = ui.get_active_filter()
-    if not preset or not preset.pattern then
+    local slot_filter = ui.get_slot_filter()
+    local has_stat_filter = preset and preset.pattern
+    local has_slot_filter = slot_filter ~= nil
+
+    -- Update inv label to reflect active filters
+    local label = 'All Storage'
+    if has_stat_filter and has_slot_filter then
+        label = preset.name .. ' [' .. ui.get_slot_display_name(slot_filter) .. ']'
+    elseif has_slot_filter then
+        label = 'All Storage [' .. ui.get_slot_display_name(slot_filter) .. ']'
+    elseif has_stat_filter then
+        label = 'Filter: ' .. preset.name
+    end
+    ui.set_inv_label(label)
+
+    if not has_stat_filter and not has_slot_filter then
         ui.update_inventory(cached_all_items)
         return
     end
+
     local filtered = {}
     for _, item in ipairs(cached_all_items) do
-        if scanner.matches_filter(item, preset.pattern) then
+        local stat_ok = true
+        local slot_ok = true
+        if has_stat_filter then
+            stat_ok = scanner.matches_filter(item, preset.pattern)
+        end
+        if has_slot_filter then
+            slot_ok = scanner.matches_slot_filter(item, slot_filter)
+        end
+        if stat_ok and slot_ok then
             table.insert(filtered, item)
         end
     end
@@ -254,11 +290,18 @@ end
 
 local function handle_kb_action(action)
     if action.type == 'equip' then
+        -- Slot protection: check if item can go in target slot
+        if not scanner.can_equip_in_slot(action.item, action.slot) then
+            ui.set_status('Cannot equip ' .. action.item.name .. ' in ' .. action.slot)
+            windower.add_to_chat(207, 'GSUI: ' .. action.item.name .. ' cannot be equipped in ' .. action.slot)
+            return
+        end
         custom_set_active = true
         set_gen.set_slot(action.slot, action.item)
         ui.set_equip_slot_item(action.slot, action.item)
         ui.set_status(action.item.name .. ' -> ' .. action.slot)
         ui.update_tooltip(action.item)
+        update_custom_stats()
         windower.add_to_chat(207, 'GSUI: ' .. action.item.name .. ' assigned to ' .. action.slot)
     elseif action.type == 'bag' then
         local dest = action.bag_name
@@ -393,6 +436,7 @@ local function handle_click(mx, my)
         custom_set_active = true
         set_gen.clear()
         ui.clear_all_equip_slots()
+        update_custom_stats()
         ui.set_status('All slots cleared.')
         windower.add_to_chat(207, 'GSUI: All equipment slots cleared.')
         return true
@@ -406,9 +450,41 @@ local function handle_click(mx, my)
         ui.set_status('Reset to equipped gear.')
         windower.add_to_chat(207, 'GSUI: Reset to currently equipped gear.')
         return true
+    elseif hit.type == 'save_btn' then
+        if set_gen.has_items() then
+            -- Prompt for name via chat
+            ui.set_status('Use: /gsui save <name>')
+            windower.add_to_chat(207, 'GSUI: Use /gsui save <name> to save current set.')
+        else
+            ui.set_status('No items to save.')
+        end
+        return true
+    elseif hit.type == 'load_btn' then
+        local sets = set_gen.list_sets()
+        if #sets == 0 then
+            ui.set_status('No saved sets.')
+            windower.add_to_chat(207, 'GSUI: No saved sets found.')
+        else
+            windower.add_to_chat(207, 'GSUI: Saved sets:')
+            for _, name in ipairs(sets) do
+                windower.add_to_chat(207, '  ' .. name)
+            end
+            ui.set_status('Use: /gsui load <name>')
+            windower.add_to_chat(207, 'GSUI: Use /gsui load <name> to load a set.')
+        end
+        return true
     elseif hit.type == 'equip_slot' then
         if hit.item then
             ui.update_tooltip(hit.item)
+        elseif hit.slot then
+            -- Left-click on empty equip slot: toggle slot filter
+            if ui.get_slot_filter() == hit.slot then
+                ui.clear_slot_filter()
+                ui.set_inv_label('All Storage')
+            else
+                ui.set_slot_filter(hit.slot)
+            end
+            apply_filter()
         end
         return true
     elseif hit.type == 'inv_item' then
@@ -440,12 +516,19 @@ local function handle_mouse_up(mx, my)
         local drop = ui.end_item_drag(mx, my)
         if drop and drop.item then
             if drop.type == 'equip' then
+                -- Slot protection
+                if not scanner.can_equip_in_slot(drop.item, drop.slot) then
+                    ui.set_status('Cannot equip ' .. drop.item.name .. ' in ' .. drop.slot)
+                    windower.add_to_chat(207, 'GSUI: ' .. drop.item.name .. ' cannot be equipped in ' .. drop.slot)
+                    return true
+                end
                 -- Dropped on an equipment slot
                 custom_set_active = true
                 set_gen.set_slot(drop.slot, drop.item)
                 ui.set_equip_slot_item(drop.slot, drop.item)
                 ui.set_status(drop.item.name .. ' -> ' .. drop.slot)
                 ui.update_tooltip(drop.item)
+                update_custom_stats()
                 windower.add_to_chat(207, 'GSUI: ' .. drop.item.name .. ' assigned to ' .. drop.slot)
             elseif drop.type == 'bag' then
                 -- Dropped on a bag in organizer
@@ -527,6 +610,8 @@ local DIK_DOWN = 208
 local DIK_LEFT = 203
 local DIK_RIGHT = 205
 local DIK_B = 48
+local DIK_DELETE = 211
+local DIK_BACK = 14
 
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if blocked then return false end
@@ -550,7 +635,8 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
 
     -- Block both press and release for nav keys so game doesn't see them
     if dik == DIK_UP or dik == DIK_DOWN or dik == DIK_LEFT or dik == DIK_RIGHT
-        or dik == DIK_TAB or dik == DIK_RETURN or dik == DIK_ESCAPE then
+        or dik == DIK_TAB or dik == DIK_RETURN or dik == DIK_ESCAPE
+        or dik == DIK_DELETE or dik == DIK_BACK then
         if pressed then
             if dik == DIK_UP then
                 ui.kb_navigate('up')
@@ -563,21 +649,57 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
             elseif dik == DIK_TAB then
                 ui.kb_switch_focus()
             elseif dik == DIK_RETURN then
-                local action = ui.kb_select()
-                if action then
-                    handle_kb_action(action)
+                -- Slot filter: Enter on empty equip slot toggles slot filter
+                local focus = ui.get_kb_focus()
+                if focus == 'equip' and not ui.get_kb_selected_item() then
+                    local slot_name = ui.get_kb_equip_slot()
+                    local icon_data = ui.get_equip_icon_data(slot_name)
+                    if slot_name and (not icon_data or not icon_data.item) then
+                        if ui.get_slot_filter() == slot_name then
+                            ui.clear_slot_filter()
+                            ui.set_inv_label('All Storage')
+                        else
+                            ui.set_slot_filter(slot_name)
+                        end
+                        apply_filter()
+                    else
+                        local action = ui.kb_select()
+                        if action then handle_kb_action(action) end
+                    end
+                else
+                    local action = ui.kb_select()
+                    if action then handle_kb_action(action) end
                 end
             elseif dik == DIK_ESCAPE then
-                if ui.get_kb_selected_item() then
+                if ui.get_slot_filter() then
+                    ui.clear_slot_filter()
+                    ui.set_inv_label('All Storage')
+                    apply_filter()
+                elseif ui.get_kb_selected_item() then
                     ui.kb_cancel()
                     ui.set_status('')
+                end
+            elseif dik == DIK_DELETE or dik == DIK_BACK then
+                -- Remove single piece from equip slot
+                local focus = ui.get_kb_focus()
+                if focus == 'equip' then
+                    local slot_name = ui.get_kb_equip_slot()
+                    if slot_name then
+                        set_gen.remove_slot(slot_name)
+                        ui.set_equip_slot_item(slot_name, nil)
+                        custom_set_active = true
+                        update_custom_stats()
+                        ui.set_status('Removed ' .. slot_name)
+                        windower.add_to_chat(207, 'GSUI: Removed ' .. slot_name)
+                    end
                 end
             end
         end
         return true
     end
 
-    return false
+    -- Block ALL other keys in KB mode so nothing leaks to the game
+    return true
 end)
 
 windower.register_event('login', function()
@@ -684,6 +806,23 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
     -- KB mode: block all game mouse input (clicks outside GSUI window)
     if ui.get_kb_mode() and not over then
         return true
+    end
+
+    -- Right click down: remove piece from equip slot
+    if type == 3 then
+        if over then
+            local hit = ui.hit_test(x, y)
+            if hit and hit.type == 'equip_slot' and hit.slot and hit.item then
+                custom_set_active = true
+                set_gen.remove_slot(hit.slot)
+                ui.set_equip_slot_item(hit.slot, nil)
+                update_custom_stats()
+                ui.set_status('Removed ' .. hit.slot)
+                windower.add_to_chat(207, 'GSUI: Removed ' .. hit.slot)
+            end
+            return true
+        end
+        return false
     end
 
     -- Left click down
@@ -838,14 +977,76 @@ windower.register_event('addon command', function(...)
         settings.kb_mode = enabled
         config.save(settings)
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
+    elseif cmd == 'save' then
+        local name = args[1]
+        if not name or name == '' then
+            windower.add_to_chat(207, 'GSUI: Usage: /gsui save <name>')
+            return
+        end
+        if not set_gen.has_items() then
+            local eq = scanner.scan_equipment()
+            set_gen.populate_from_equipment(eq)
+        end
+        local ok, path = set_gen.save_set(name)
+        if ok then
+            windower.add_to_chat(207, 'GSUI: Saved set "' .. name .. '" to ' .. path)
+            ui.set_status('Saved: ' .. name)
+        else
+            windower.add_to_chat(207, 'GSUI: Failed to save set.')
+        end
+    elseif cmd == 'load' then
+        local name = args[1]
+        if not name or name == '' then
+            windower.add_to_chat(207, 'GSUI: Usage: /gsui load <name>')
+            return
+        end
+        local eq = set_gen.load_set(name)
+        if eq then
+            custom_set_active = true
+            for slot_name, item in pairs(eq) do
+                set_gen.set_slot(slot_name, item)
+                ui.set_equip_slot_item(slot_name, item)
+            end
+            update_custom_stats()
+            ui.set_status('Loaded: ' .. name)
+            windower.add_to_chat(207, 'GSUI: Loaded set "' .. name .. '"')
+        else
+            windower.add_to_chat(207, 'GSUI: Set "' .. name .. '" not found.')
+        end
+    elseif cmd == 'delete' then
+        local name = args[1]
+        if not name or name == '' then
+            windower.add_to_chat(207, 'GSUI: Usage: /gsui delete <name>')
+            return
+        end
+        if set_gen.delete_set(name) then
+            windower.add_to_chat(207, 'GSUI: Deleted set "' .. name .. '"')
+            ui.set_status('Deleted: ' .. name)
+        else
+            windower.add_to_chat(207, 'GSUI: Set "' .. name .. '" not found.')
+        end
+    elseif cmd == 'sets' then
+        local sets = set_gen.list_sets()
+        if #sets == 0 then
+            windower.add_to_chat(207, 'GSUI: No saved sets.')
+        else
+            windower.add_to_chat(207, 'GSUI: Saved sets:')
+            for _, name in ipairs(sets) do
+                windower.add_to_chat(207, '  ' .. name)
+            end
+        end
     elseif cmd == 'help' then
         windower.add_to_chat(207, 'GSUI Commands:')
         windower.add_to_chat(207, '  /gsui - Toggle window')
         windower.add_to_chat(207, '  /gsui show|hide - Show/hide window')
-        windower.add_to_chat(207, '  /gsui refresh - Refresh inventory data')
+        windower.add_to_chat(207, '  /gsui refresh - Rescan inventory')
         windower.add_to_chat(207, '  /gsui pos <x> <y> - Set window position')
-        windower.add_to_chat(207, '  /gsui gen [name] - Generate set to clipboard')
-        windower.add_to_chat(207, '  /gsui clear - Clear set and reset to equipped')
+        windower.add_to_chat(207, '  /gsui gen - Generate set to clipboard')
+        windower.add_to_chat(207, '  /gsui clear - Reset to currently equipped')
+        windower.add_to_chat(207, '  /gsui save <name> - Save current set')
+        windower.add_to_chat(207, '  /gsui load <name> - Load a saved set')
+        windower.add_to_chat(207, '  /gsui delete <name> - Delete a saved set')
+        windower.add_to_chat(207, '  /gsui sets - List saved sets')
         windower.add_to_chat(207, '  /gsui org - Toggle organizer mode')
         windower.add_to_chat(207, '  /gsui kb - Toggle keyboard/drag mode')
         windower.add_to_chat(207, '  /gsui gamepath <path> - Set FFXI install path')

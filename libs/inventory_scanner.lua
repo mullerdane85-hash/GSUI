@@ -287,7 +287,33 @@ local function word_wrap(text, max_chars)
     return table.concat(wrapped, '\n')
 end
 
-function inventory_scanner.build_tooltip_text(item_info)
+local slot_display_names = {
+    main = 'Main', sub = 'Sub', range = 'Range', ammo = 'Ammo',
+    head = 'Head', body = 'Body', hands = 'Hands', legs = 'Legs', feet = 'Feet',
+    neck = 'Neck', waist = 'Waist', left_ear = 'Ear', right_ear = 'Ear',
+    left_ring = 'Ring', right_ring = 'Ring', back = 'Back',
+}
+
+-- Get deduplicated slot display string for an item
+local function get_slot_display(item_info)
+    if not item_info or not item_info.slots or #item_info.slots == 0 then return nil end
+    local names = {}
+    for _, s in ipairs(item_info.slots) do
+        local d = slot_display_names[s] or s
+        local found = false
+        for _, e in ipairs(names) do
+            if e == d then found = true; break end
+        end
+        if not found then table.insert(names, d) end
+    end
+    return '[' .. table.concat(names, '/') .. ']'
+end
+
+function inventory_scanner.get_slot_display_name(slot_name)
+    return slot_display_names[slot_name] or slot_name
+end
+
+function inventory_scanner.build_tooltip_text(item_info, highlight_pattern)
     if not item_info then return '' end
     local lines = {}
     local max_chars = 38
@@ -295,37 +321,33 @@ function inventory_scanner.build_tooltip_text(item_info)
     -- Item name
     table.insert(lines, word_wrap(item_info.name, max_chars))
 
+    -- Always show slot indicator after name
+    local slot_str = get_slot_display(item_info)
+    if slot_str then
+        table.insert(lines, slot_str)
+    end
+
     -- Full description from item_descriptions resource
     -- This contains slot type, races, DEF/stats, abilities, etc.
     if item_info.description and item_info.description ~= '' then
         for line in item_info.description:gmatch('[^\r\n]+') do
             local trimmed = line:gsub('%s+$', '')
             if trimmed ~= '' then
-                table.insert(lines, word_wrap(trimmed, max_chars))
+                local wrapped = word_wrap(trimmed, max_chars)
+                -- Highlight matching lines if filter active
+                if highlight_pattern then
+                    local pats = type(highlight_pattern) == 'table' and highlight_pattern or {highlight_pattern}
+                    for _, pat in ipairs(pats) do
+                        if trimmed:find(pat) then
+                            wrapped = '>> ' .. wrapped
+                            break
+                        end
+                    end
+                end
+                table.insert(lines, wrapped)
             end
         end
     else
-        -- Fallback if description unavailable: show what we can
-        -- Slot type
-        if item_info.slots and #item_info.slots > 0 then
-            local slot_display = {
-                main = 'Main', sub = 'Sub', range = 'Range', ammo = 'Ammo',
-                head = 'Head', body = 'Body', hands = 'Hands', legs = 'Legs', feet = 'Feet',
-                neck = 'Neck', waist = 'Waist', left_ear = 'Ear', right_ear = 'Ear',
-                left_ring = 'Ring', right_ring = 'Ring', back = 'Back',
-            }
-            local names = {}
-            for _, s in ipairs(item_info.slots) do
-                local d = slot_display[s] or s
-                local found = false
-                for _, e in ipairs(names) do
-                    if e == d then found = true; break end
-                end
-                if not found then table.insert(names, d) end
-            end
-            table.insert(lines, '[' .. table.concat(names, '/') .. ']')
-        end
-
         -- Weapon skill type
         local skill_names = {
             [1] = 'Hand-to-Hand', [2] = 'Dagger', [3] = 'Sword', [4] = 'Great Sword',
@@ -353,7 +375,18 @@ function inventory_scanner.build_tooltip_text(item_info)
     if item_info.augments and #item_info.augments > 0 then
         table.insert(lines, 'Augments:')
         for _, aug in ipairs(item_info.augments) do
-            table.insert(lines, ' ' .. word_wrap(aug, max_chars - 1))
+            local aug_text = ' ' .. word_wrap(aug, max_chars - 1)
+            -- Highlight matching augments if filter active
+            if highlight_pattern then
+                local pats = type(highlight_pattern) == 'table' and highlight_pattern or {highlight_pattern}
+                for _, pat in ipairs(pats) do
+                    if aug:find(pat) then
+                        aug_text = '>> ' .. aug_text
+                        break
+                    end
+                end
+            end
+            table.insert(lines, aug_text)
         end
         table.insert(lines, '')
     end
@@ -471,7 +504,7 @@ local filter_master_list = {
     { name = 'White Magic Skill',  pattern = '[Ww]hite [Mm]agic' },
     { name = 'Black Magic Skill',  pattern = '[Bb]lack [Mm]agic' },
     { name = 'Enfeebling Magic',   pattern = '[Ee]nfeebling' },
-    { name = 'Enhancing Magic',    pattern = '[Ee]nhancing' },
+    { name = 'Enhancing Magic',    pattern = '[Ee]nhanc[ei]' },
     { name = 'Elemental Magic',    pattern = '[Ee]lemental [Mm]agic' },
     { name = 'Dark Magic',         pattern = '[Dd]ark [Mm]agic' },
     { name = 'Divine Magic',       pattern = '[Dd]ivine [Mm]agic' },
@@ -584,6 +617,19 @@ function inventory_scanner.find_active_filters(items)
         table.insert(active, f)
     end
     return active
+end
+
+function inventory_scanner.can_equip_in_slot(item_info, slot_name)
+    if not item_info or not item_info.slots or not slot_name then return false end
+    for _, s in ipairs(item_info.slots) do
+        if s == slot_name then return true end
+    end
+    return false
+end
+
+function inventory_scanner.matches_slot_filter(item_info, slot_name)
+    if not slot_name then return true end
+    return inventory_scanner.can_equip_in_slot(item_info, slot_name)
 end
 
 function inventory_scanner.is_equippable_by(item_info, job_id, player_level)

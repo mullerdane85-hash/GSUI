@@ -2,6 +2,19 @@
 
 A Windower 4 addon for FFXI that provides a visual gear set builder, inventory organizer, and live gear stat tracker.
 
+## Updates
+
+### v1.2.0
+- **Bug Fix**: Icons that required scrolling to see now load correctly (fixed extraction cache issue)
+- **Bug Fix**: Gear Stats panel now updates live when building custom sets and correctly calculates all stats (Magic Evasion, Damage Taken, etc.)
+- **New**: Right-click an equipment slot to remove a single piece (or Delete key in KB mode)
+- **New**: Slot indicator shown in item tooltips — always shows which slot(s) an item can go in
+- **New**: Slot protection — prevents equipping items in incompatible slots
+- **New**: Filter by slot — click an empty equip slot to filter inventory to items for that slot. Works alongside stat filters.
+- **New**: Active filter keywords are highlighted with >> in item tooltips
+- **New**: Improved filter matching — "Enhancing Magic" filter now catches items like Incanter's Torque
+- **New**: Save/Load gear sets — save named sets, load them back, manage via commands (`/gsui save`, `/gsui load`, `/gsui sets`, `/gsui delete`)
+
 ## Keybind
 
 - **B** - Toggle window open/close (automatically ignored while typing in chat)
@@ -14,6 +27,10 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 - `/gsui pos <x> <y>` - Set window position
 - `/gsui gen` - Generate GearSwap set to clipboard
 - `/gsui clear` - Reset to currently equipped gear
+- `/gsui save <name>` - Save current set to a named file
+- `/gsui load <name>` - Load a previously saved set
+- `/gsui sets` - List all saved sets
+- `/gsui delete <name>` - Delete a saved set
 - `/gsui org` - Toggle between GearSwap and Organizer mode
 - `/gsui kb` - Toggle between Keyboard and Drag mode
 - `/gsui gamepath <path>` - Override FFXI install path (auto-detected, rarely needed)

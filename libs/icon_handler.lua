@@ -56,13 +56,28 @@ function icon_handler.load_icon(image, item_id)
     end
     if icon_handler.ensure_icon(item_id) then
         local path = icon_handler.get_icon_path(item_id)
-        image:alpha(0)
-        image:path(path)
-        image:update()
-        image:color(255, 255, 255)
-        image:alpha(230)
-        image:show()
-        return true
+        local ok = pcall(function()
+            image:alpha(0)
+            image:path(path)
+            image:update()
+            image:color(255, 255, 255)
+            image:alpha(230)
+            image:show()
+        end)
+        if ok then return true end
+        -- BMP exists but failed to display — delete and re-extract
+        pcall(os.remove, path)
+        if icon_handler.ensure_icon(item_id) then
+            pcall(function()
+                image:alpha(0)
+                image:path(path)
+                image:update()
+                image:color(255, 255, 255)
+                image:alpha(230)
+                image:show()
+            end)
+            return true
+        end
     end
     image:alpha(0)
     image:hide()
