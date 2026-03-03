@@ -249,6 +249,7 @@ local function initialize()
     -- Restore KB mode
     if settings.kb_mode then
         ui.set_kb_mode(true)
+        activate_kb_binds()
     end
 
     -- Register filter callback
@@ -365,6 +366,7 @@ local function handle_click(mx, my)
         local enabled = ui.toggle_kb_mode()
         settings.kb_mode = enabled
         config.save(settings)
+        if enabled then activate_kb_binds() else deactivate_kb_binds() end
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
         return true
     elseif hit.type == 'sort_toggle' then
@@ -601,22 +603,96 @@ windower.register_event('load', function()
     end
 end)
 
--- DIK key codes
-local DIK_ESCAPE = 1
-local DIK_RETURN = 28
-local DIK_TAB = 15
-local DIK_UP = 200
-local DIK_DOWN = 208
-local DIK_LEFT = 203
-local DIK_RIGHT = 205
-local DIK_B = 48
-local DIK_DELETE = 211
-local DIK_BACK = 14
+-- KB mode: use Windower bind system to intercept at DirectInput level
+local kb_binds_active = false
 
+local function kb_handle_up()    ui.kb_navigate('up') end
+local function kb_handle_down()  ui.kb_navigate('down') end
+local function kb_handle_left()  ui.kb_navigate('left') end
+local function kb_handle_right() ui.kb_navigate('right') end
+
+local function kb_handle_tab()
+    ui.kb_switch_focus()
+end
+
+local function kb_handle_enter()
+    local focus = ui.get_kb_focus()
+    if focus == 'equip' and not ui.get_kb_selected_item() then
+        local slot_name = ui.get_kb_equip_slot()
+        local icon_data = ui.get_equip_icon_data(slot_name)
+        if slot_name and (not icon_data or not icon_data.item) then
+            if ui.get_slot_filter() == slot_name then
+                ui.clear_slot_filter()
+                ui.set_inv_label('All Storage')
+            else
+                ui.set_slot_filter(slot_name)
+            end
+            apply_filter()
+            return
+        end
+    end
+    local action = ui.kb_select()
+    if action then handle_kb_action(action) end
+end
+
+local function kb_handle_escape()
+    if ui.get_slot_filter() then
+        ui.clear_slot_filter()
+        ui.set_inv_label('All Storage')
+        apply_filter()
+    elseif ui.get_kb_selected_item() then
+        ui.kb_cancel()
+        ui.set_status('')
+    end
+end
+
+local function kb_handle_delete()
+    local focus = ui.get_kb_focus()
+    if focus == 'equip' then
+        local slot_name = ui.get_kb_equip_slot()
+        if slot_name then
+            set_gen.remove_slot(slot_name)
+            ui.set_equip_slot_item(slot_name, nil)
+            custom_set_active = true
+            update_custom_stats()
+            ui.set_status('Removed ' .. slot_name)
+            windower.add_to_chat(207, 'GSUI: Removed ' .. slot_name)
+        end
+    end
+end
+
+local function activate_kb_binds()
+    if kb_binds_active then return end
+    kb_binds_active = true
+    windower.send_command('bind up gsui kb_up')
+    windower.send_command('bind down gsui kb_down')
+    windower.send_command('bind left gsui kb_left')
+    windower.send_command('bind right gsui kb_right')
+    windower.send_command('bind tab gsui kb_tab')
+    windower.send_command('bind enter gsui kb_enter')
+    windower.send_command('bind escape gsui kb_escape')
+    windower.send_command('bind delete gsui kb_delete')
+    windower.send_command('bind backspace gsui kb_delete')
+end
+
+local function deactivate_kb_binds()
+    if not kb_binds_active then return end
+    kb_binds_active = false
+    windower.send_command('unbind up')
+    windower.send_command('unbind down')
+    windower.send_command('unbind left')
+    windower.send_command('unbind right')
+    windower.send_command('unbind tab')
+    windower.send_command('unbind enter')
+    windower.send_command('unbind escape')
+    windower.send_command('unbind delete')
+    windower.send_command('unbind backspace')
+end
+
+-- B key toggle
+local DIK_B = 48
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if blocked then return false end
-
-    -- B key toggle (only when chat is not open)
     if dik == DIK_B and pressed then
         local info = windower.ffxi.get_info()
         if info and not info.chat_open then
@@ -624,82 +700,7 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
             return true
         end
     end
-
-    -- KB mode navigation (only when GSUI is visible and in KB mode)
-    if not initialized or not ui.is_visible() or not ui.get_kb_mode() then
-        return false
-    end
-
-    local info = windower.ffxi.get_info()
-    if info and info.chat_open then return false end
-
-    -- Block both press and release for nav keys so game doesn't see them
-    if dik == DIK_UP or dik == DIK_DOWN or dik == DIK_LEFT or dik == DIK_RIGHT
-        or dik == DIK_TAB or dik == DIK_RETURN or dik == DIK_ESCAPE
-        or dik == DIK_DELETE or dik == DIK_BACK then
-        if pressed then
-            if dik == DIK_UP then
-                ui.kb_navigate('up')
-            elseif dik == DIK_DOWN then
-                ui.kb_navigate('down')
-            elseif dik == DIK_LEFT then
-                ui.kb_navigate('left')
-            elseif dik == DIK_RIGHT then
-                ui.kb_navigate('right')
-            elseif dik == DIK_TAB then
-                ui.kb_switch_focus()
-            elseif dik == DIK_RETURN then
-                -- Slot filter: Enter on empty equip slot toggles slot filter
-                local focus = ui.get_kb_focus()
-                if focus == 'equip' and not ui.get_kb_selected_item() then
-                    local slot_name = ui.get_kb_equip_slot()
-                    local icon_data = ui.get_equip_icon_data(slot_name)
-                    if slot_name and (not icon_data or not icon_data.item) then
-                        if ui.get_slot_filter() == slot_name then
-                            ui.clear_slot_filter()
-                            ui.set_inv_label('All Storage')
-                        else
-                            ui.set_slot_filter(slot_name)
-                        end
-                        apply_filter()
-                    else
-                        local action = ui.kb_select()
-                        if action then handle_kb_action(action) end
-                    end
-                else
-                    local action = ui.kb_select()
-                    if action then handle_kb_action(action) end
-                end
-            elseif dik == DIK_ESCAPE then
-                if ui.get_slot_filter() then
-                    ui.clear_slot_filter()
-                    ui.set_inv_label('All Storage')
-                    apply_filter()
-                elseif ui.get_kb_selected_item() then
-                    ui.kb_cancel()
-                    ui.set_status('')
-                end
-            elseif dik == DIK_DELETE or dik == DIK_BACK then
-                -- Remove single piece from equip slot
-                local focus = ui.get_kb_focus()
-                if focus == 'equip' then
-                    local slot_name = ui.get_kb_equip_slot()
-                    if slot_name then
-                        set_gen.remove_slot(slot_name)
-                        ui.set_equip_slot_item(slot_name, nil)
-                        custom_set_active = true
-                        update_custom_stats()
-                        ui.set_status('Removed ' .. slot_name)
-                        windower.add_to_chat(207, 'GSUI: Removed ' .. slot_name)
-                    end
-                end
-            end
-        end
-        return true
-    end
-
-    -- Block ALL other keys in KB mode so nothing leaks to the game
-    return true
+    return false
 end)
 
 windower.register_event('login', function()
@@ -707,6 +708,7 @@ windower.register_event('login', function()
 end)
 
 windower.register_event('logout', function()
+    deactivate_kb_binds()
     if initialized then
         save_position()
         ui.destroy()
@@ -715,6 +717,7 @@ windower.register_event('logout', function()
 end)
 
 windower.register_event('unload', function()
+    deactivate_kb_binds()
     if initialized then
         save_position()
         ui.destroy()
@@ -976,6 +979,7 @@ windower.register_event('addon command', function(...)
         local enabled = ui.toggle_kb_mode()
         settings.kb_mode = enabled
         config.save(settings)
+        if enabled then activate_kb_binds() else deactivate_kb_binds() end
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
     elseif cmd == 'save' then
         local name = args[1]
@@ -1050,6 +1054,15 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui org - Toggle organizer mode')
         windower.add_to_chat(207, '  /gsui kb - Toggle keyboard/drag mode')
         windower.add_to_chat(207, '  /gsui gamepath <path> - Set FFXI install path')
+    -- KB bind commands (called by Windower bind system)
+    elseif cmd == 'kb_up' then kb_handle_up()
+    elseif cmd == 'kb_down' then kb_handle_down()
+    elseif cmd == 'kb_left' then kb_handle_left()
+    elseif cmd == 'kb_right' then kb_handle_right()
+    elseif cmd == 'kb_tab' then kb_handle_tab()
+    elseif cmd == 'kb_enter' then kb_handle_enter()
+    elseif cmd == 'kb_escape' then kb_handle_escape()
+    elseif cmd == 'kb_delete' then kb_handle_delete()
     else
         windower.add_to_chat(207, 'GSUI: Unknown command. Use /gsui help')
     end
