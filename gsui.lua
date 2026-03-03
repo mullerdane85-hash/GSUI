@@ -22,6 +22,7 @@ local defaults = {
     pos = { x = 200, y = 200 },
     visible = true,
     game_path = nil,
+    kb_mode = false,
 }
 local settings = config.load(defaults)
 config.save(settings)
@@ -209,6 +210,11 @@ local function initialize()
         ui.hide()
     end
 
+    -- Restore KB mode
+    if settings.kb_mode then
+        ui.set_kb_mode(true)
+    end
+
     -- Register filter callback
     ui.set_on_filter(function()
         apply_filter()
@@ -246,6 +252,60 @@ local function refresh_data()
     apply_filter()
 end
 
+local function handle_kb_action(action)
+    if action.type == 'equip' then
+        custom_set_active = true
+        set_gen.set_slot(action.slot, action.item)
+        ui.set_equip_slot_item(action.slot, action.item)
+        ui.set_status(action.item.name .. ' -> ' .. action.slot)
+        ui.update_tooltip(action.item)
+        windower.add_to_chat(207, 'GSUI: ' .. action.item.name .. ' assigned to ' .. action.slot)
+    elseif action.type == 'bag' then
+        local dest = action.bag_name
+        local item = action.item
+        if not bag_org.is_in_mog_house() and (bag_org.is_mog_bag(dest) or bag_org.is_mog_bag(item.bag_name)) then
+            ui.set_status('Must be in Mog House')
+            windower.add_to_chat(207, 'GSUI: Unable to move items to/from Mog House storage unless in your Mog House.')
+        elseif ui.get_org_view() == 'scattered' and _org_all_bag_items then
+            local move_count = 0
+            for bag_name, items in pairs(_org_all_bag_items) do
+                if bag_name ~= dest and bag_org.is_bag_accessible(bag_name) then
+                    for _, bag_item in ipairs(items) do
+                        if bag_item.id == item.id then
+                            bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count)
+                            move_count = move_count + 1
+                        end
+                    end
+                end
+            end
+            if move_count > 0 then
+                ui.set_status('Consolidating ' .. item.name .. ' -> ' .. dest)
+                windower.add_to_chat(207, 'GSUI: Consolidating ' .. item.name .. ' to ' .. dest .. ' (' .. move_count .. ' moves)')
+            else
+                ui.set_status('Nothing to move')
+            end
+            coroutine.schedule(function()
+                if initialized then refresh_organizer() end
+            end, 1 + move_count * 0.5)
+        elseif item.bag_name == dest then
+            ui.set_status('Already in ' .. dest)
+        else
+            bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count)
+            ui.set_status(item.name .. ' -> ' .. dest)
+            windower.add_to_chat(207, 'GSUI: Moving ' .. item.name .. ' to ' .. dest)
+            coroutine.schedule(function()
+                if initialized then refresh_organizer() end
+            end, 1)
+        end
+    elseif action.type == 'select' then
+        ui.set_status('Selected: ' .. (action.item.name or '?'))
+    elseif action.type == 'deselect' then
+        ui.set_status('')
+    elseif action.type == 'show_bag' then
+        show_org_bag(action.bag_name)
+    end
+end
+
 local function handle_click(mx, my)
     local hit = ui.hit_test(mx, my)
     if not hit then return false end
@@ -258,7 +318,13 @@ local function handle_click(mx, my)
         end
     end
 
-    if hit.type == 'sort_toggle' then
+    if hit.type == 'kb_mode_toggle' then
+        local enabled = ui.toggle_kb_mode()
+        settings.kb_mode = enabled
+        config.save(settings)
+        windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
+        return true
+    elseif hit.type == 'sort_toggle' then
         ui.toggle_sort_mode()
         local view = ui.get_org_view()
         if view == 'bags' then
@@ -348,8 +414,10 @@ local function handle_click(mx, my)
     elseif hit.type == 'inv_item' then
         if hit.item then
             ui.update_tooltip(hit.item)
-            -- Start drag-and-drop
-            ui.start_item_drag(hit.item)
+            if not ui.get_kb_mode() then
+                -- Start drag-and-drop (only in drag mode)
+                ui.start_item_drag(hit.item)
+            end
         end
         return true
     elseif hit.type == 'window' then
@@ -450,15 +518,65 @@ windower.register_event('load', function()
     end
 end)
 
--- B key toggle that ignores chat input (DIK_B = 48)
+-- DIK key codes
+local DIK_ESCAPE = 1
+local DIK_RETURN = 28
+local DIK_TAB = 15
+local DIK_UP = 200
+local DIK_DOWN = 208
+local DIK_LEFT = 203
+local DIK_RIGHT = 205
+local DIK_B = 48
+
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
-    if dik == 48 and pressed and not blocked then
+    if blocked then return false end
+
+    -- B key toggle (only when chat is not open)
+    if dik == DIK_B and pressed then
         local info = windower.ffxi.get_info()
         if info and not info.chat_open then
             windower.send_command('gsui')
             return true
         end
     end
+
+    -- KB mode navigation (only when GSUI is visible and in KB mode)
+    if not initialized or not ui.is_visible() or not ui.get_kb_mode() then
+        return false
+    end
+
+    local info = windower.ffxi.get_info()
+    if info and info.chat_open then return false end
+
+    -- Block both press and release for nav keys so game doesn't see them
+    if dik == DIK_UP or dik == DIK_DOWN or dik == DIK_LEFT or dik == DIK_RIGHT
+        or dik == DIK_TAB or dik == DIK_RETURN or dik == DIK_ESCAPE then
+        if pressed then
+            if dik == DIK_UP then
+                ui.kb_navigate('up')
+            elseif dik == DIK_DOWN then
+                ui.kb_navigate('down')
+            elseif dik == DIK_LEFT then
+                ui.kb_navigate('left')
+            elseif dik == DIK_RIGHT then
+                ui.kb_navigate('right')
+            elseif dik == DIK_TAB then
+                ui.kb_switch_focus()
+            elseif dik == DIK_RETURN then
+                local action = ui.kb_select()
+                if action then
+                    handle_kb_action(action)
+                end
+            elseif dik == DIK_ESCAPE then
+                if ui.get_kb_selected_item() then
+                    ui.kb_cancel()
+                    ui.set_status('')
+                end
+            end
+        end
+        return true
+    end
+
     return false
 end)
 
@@ -562,6 +680,11 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
     if not initialized or not ui.is_visible() then return false end
 
     local over = ui.is_over_window(x, y)
+
+    -- KB mode: block all game mouse input (clicks outside GSUI window)
+    if ui.get_kb_mode() and not over then
+        return true
+    end
 
     -- Left click down
     if type == 1 then
@@ -709,6 +832,12 @@ windower.register_event('addon command', function(...)
             apply_filter()
             windower.add_to_chat(207, 'GSUI: GearSwap mode.')
         end
+    elseif cmd == 'kb' or cmd == 'keyboard' then
+        if not initialized then initialize() end
+        local enabled = ui.toggle_kb_mode()
+        settings.kb_mode = enabled
+        config.save(settings)
+        windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
     elseif cmd == 'help' then
         windower.add_to_chat(207, 'GSUI Commands:')
         windower.add_to_chat(207, '  /gsui - Toggle window')
@@ -718,6 +847,7 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui gen [name] - Generate set to clipboard')
         windower.add_to_chat(207, '  /gsui clear - Clear set and reset to equipped')
         windower.add_to_chat(207, '  /gsui org - Toggle organizer mode')
+        windower.add_to_chat(207, '  /gsui kb - Toggle keyboard/drag mode')
         windower.add_to_chat(207, '  /gsui gamepath <path> - Set FFXI install path')
     else
         windower.add_to_chat(207, 'GSUI: Unknown command. Use /gsui help')

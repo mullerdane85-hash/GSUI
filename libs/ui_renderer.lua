@@ -43,6 +43,15 @@ local equip_layout = {
     feet       = { col = 3, row = 3, label = 'Feet' },
 }
 
+-- Build col/row -> slot_name lookup for keyboard navigation
+local equip_nav_grid = {}
+for slot_name, layout in pairs(equip_layout) do
+    if not equip_nav_grid[layout.row] then
+        equip_nav_grid[layout.row] = {}
+    end
+    equip_nav_grid[layout.row][layout.col] = slot_name
+end
+
 local ORG_BAG_LIST = {
     {key='all', label='All Bags'},
     {key='inventory', label='Inventory'},
@@ -92,6 +101,8 @@ local elements = {
     org_scattered_btn_bg = nil, org_scattered_btn_text = nil,
     org_scroll_up = nil, org_scroll_down = nil,
     sort_toggle_bg = nil, sort_toggle_text = nil,
+    -- Keyboard navigation
+    kb_cursor = nil, kb_selection = nil, kb_mode_text = nil,
 }
 
 local state = {
@@ -142,6 +153,16 @@ local state = {
     stat_scroll = 0,
     stat_max_lines = 10,
     stat_rect = {},
+    -- Keyboard navigation
+    kb_mode = false,
+    kb_focus = 'inv',
+    kb_inv_index = 1,
+    kb_equip_col = 0,
+    kb_equip_row = 0,
+    kb_bag_index = 1,
+    kb_selected_item = nil,
+    kb_selected_inv_index = nil,
+    kb_mode_rect = {},
 }
 
 -- Dimensions
@@ -513,6 +534,17 @@ function ui.build()
         color = { alpha = 200, red = 255, green = 255, blue = 255 },
     })
 
+    -- Keyboard navigation highlights (created last so they render on top)
+    elements.kb_cursor = make_bg(0, 0, ICON_SIZE, ICON_SIZE, 100, 255, 220, 50)
+    elements.kb_selection = make_bg(0, 0, ICON_SIZE, ICON_SIZE, 80, 50, 255, 50)
+
+    -- Mode toggle on title bar
+    local mode_label = state.kb_mode and '[KB]' or '[Drag]'
+    local mode_x = tb_x + tb_w - 55
+    elements.kb_mode_text = make_text(mode_label, mode_x, tb_y + 7, 9, 180, 220, 255, true)
+    elements.kb_mode_text:show()
+    state.kb_mode_rect = { x = mode_x, y = tb_y, w = 50, h = TITLE_BAR_H }
+
     -- Hide gearswap elements if in organizer mode (build always shows them)
     if state.mode == 'organizer' then
         hide_element(elements.equip_bg)
@@ -732,6 +764,12 @@ function ui.refresh_inv_grid()
             icon_data.image:alpha(0)
             icon_data.image:hide()
         end
+    end
+
+    -- Update keyboard navigation highlights
+    if state.kb_mode then
+        ui.update_kb_cursor()
+        ui.update_kb_selection()
     end
 end
 
@@ -1064,6 +1102,12 @@ function ui.hit_test(mx, my)
         return { type = 'stat_panel' }
     end
 
+    -- KB mode toggle (on title bar)
+    local km = state.kb_mode_rect
+    if km and km.x and mx >= km.x and mx <= km.x + km.w and my >= km.y and my <= km.y + km.h then
+        return { type = 'kb_mode_toggle' }
+    end
+
     -- Title bar for window dragging
     local tb_y_start = state.pos_y + BORDER
     local tb_y_end = tb_y_start + TITLE_BAR_H
@@ -1190,6 +1234,13 @@ function ui.show()
     if elements.drag_icon and not state.item_dragging then
         elements.drag_icon:hide()
     end
+
+    -- Keyboard nav
+    show_element(elements.kb_mode_text)
+    if state.kb_mode then
+        ui.update_kb_cursor()
+        ui.update_kb_selection()
+    end
 end
 
 function ui.hide()
@@ -1252,6 +1303,10 @@ function ui.hide()
     -- Sort toggle
     hide_element(elements.sort_toggle_bg)
     hide_element(elements.sort_toggle_text)
+    -- Keyboard nav
+    hide_element(elements.kb_cursor)
+    hide_element(elements.kb_selection)
+    hide_element(elements.kb_mode_text)
     -- Organizer elements
     ui.hide_org_panel()
 end
@@ -1357,6 +1412,9 @@ function ui.destroy()
     destroy_element(elements.org_scroll_down)
     destroy_element(elements.sort_toggle_bg)
     destroy_element(elements.sort_toggle_text)
+    destroy_element(elements.kb_cursor)
+    destroy_element(elements.kb_selection)
+    destroy_element(elements.kb_mode_text)
     for _, entry in ipairs(elements.org_bag_entries) do
         destroy_element(entry)
     end
@@ -1381,6 +1439,7 @@ function ui.destroy()
         org_scattered_btn_bg = nil, org_scattered_btn_text = nil,
         org_scroll_up = nil, org_scroll_down = nil,
         sort_toggle_bg = nil, sort_toggle_text = nil,
+        kb_cursor = nil, kb_selection = nil, kb_mode_text = nil,
     }
 end
 
@@ -1392,6 +1451,10 @@ end
 
 function ui.set_mode(mode)
     state.mode = mode
+    -- Reset KB navigation on mode switch
+    state.kb_focus = 'inv'
+    state.kb_selected_item = nil
+    state.kb_selected_inv_index = nil
     if mode == 'gearswap' then
         -- Highlight GearSwap tab, dim Organizer tab
         elements.tab_gs_bg:color(50, 100, 180)
@@ -1649,6 +1712,338 @@ function ui.get_bag_label(bag_key)
         if entry.key == bag_key then return entry.label end
     end
     return bag_key
+end
+
+-- === KEYBOARD NAVIGATION ===
+
+function ui.get_kb_mode()
+    return state.kb_mode
+end
+
+function ui.set_kb_mode(enabled)
+    state.kb_mode = enabled
+    if elements.kb_mode_text then
+        elements.kb_mode_text:text(enabled and '[KB]' or '[Drag]')
+    end
+    if not enabled then
+        if elements.kb_cursor then elements.kb_cursor:hide() end
+        if elements.kb_selection then elements.kb_selection:hide() end
+        state.kb_selected_item = nil
+        state.kb_selected_inv_index = nil
+    else
+        state.kb_focus = 'inv'
+        state.kb_inv_index = 1
+        state.kb_selected_item = nil
+        state.kb_selected_inv_index = nil
+        if state.visible then
+            ui.update_kb_cursor()
+        end
+    end
+    return enabled
+end
+
+function ui.toggle_kb_mode()
+    return ui.set_kb_mode(not state.kb_mode)
+end
+
+function ui.get_kb_selected_item()
+    return state.kb_selected_item
+end
+
+function ui.update_kb_cursor()
+    if not state.kb_mode or not state.visible or not elements.kb_cursor then
+        if elements.kb_cursor then elements.kb_cursor:hide() end
+        return
+    end
+
+    if state.kb_focus == 'inv' then
+        local items = state.inv_items or {}
+        if #items == 0 then
+            elements.kb_cursor:hide()
+            return
+        end
+        if state.kb_inv_index > #items then state.kb_inv_index = #items end
+        if state.kb_inv_index < 1 then state.kb_inv_index = 1 end
+
+        -- Auto-scroll to keep cursor visible
+        local abs_row = math.floor((state.kb_inv_index - 1) / INV_COLS)
+        if abs_row < state.scroll_offset then
+            state.scroll_offset = abs_row
+            ui.refresh_inv_grid()
+            return -- refresh_inv_grid will call update_kb_cursor again
+        elseif abs_row >= state.scroll_offset + INV_VISIBLE_ROWS then
+            state.scroll_offset = abs_row - INV_VISIBLE_ROWS + 1
+            ui.refresh_inv_grid()
+            return
+        end
+
+        local display_idx = state.kb_inv_index - state.scroll_offset * INV_COLS
+        local icon_data = elements.inv_icons[display_idx]
+        if icon_data then
+            elements.kb_cursor:size(ICON_SIZE, ICON_SIZE)
+            elements.kb_cursor:pos(icon_data.x, icon_data.y)
+            elements.kb_cursor:show()
+        else
+            elements.kb_cursor:hide()
+        end
+
+    elseif state.kb_focus == 'equip' then
+        local slot_name = equip_nav_grid[state.kb_equip_row] and equip_nav_grid[state.kb_equip_row][state.kb_equip_col]
+        if slot_name then
+            local icon_data = elements.equip_icons[slot_name]
+            if icon_data then
+                elements.kb_cursor:size(ICON_SIZE, ICON_SIZE)
+                elements.kb_cursor:pos(icon_data.x, icon_data.y)
+                elements.kb_cursor:show()
+            else
+                elements.kb_cursor:hide()
+            end
+        else
+            elements.kb_cursor:hide()
+        end
+
+    elseif state.kb_focus == 'bags' then
+        local bag_def = ORG_BAG_LIST[state.kb_bag_index]
+        if not bag_def then
+            elements.kb_cursor:hide()
+            return
+        end
+
+        -- Auto-scroll to keep cursor visible
+        local visual_idx = state.kb_bag_index - state.org_bag_scroll
+        if visual_idx < 1 then
+            state.org_bag_scroll = state.kb_bag_index - 1
+            ui.refresh_org_bags()
+            visual_idx = 1
+        elseif visual_idx > ORG_VISIBLE then
+            state.org_bag_scroll = state.kb_bag_index - ORG_VISIBLE
+            ui.refresh_org_bags()
+            visual_idx = ORG_VISIBLE
+        end
+
+        local entry = elements.org_bag_entries[visual_idx]
+        if entry then
+            elements.kb_cursor:size(entry.w, entry.h - 2)
+            elements.kb_cursor:pos(entry.x, entry.y)
+            elements.kb_cursor:show()
+        else
+            elements.kb_cursor:hide()
+        end
+    end
+end
+
+function ui.update_kb_selection()
+    if not state.kb_mode or not state.visible or not elements.kb_selection or not state.kb_selected_item then
+        if elements.kb_selection then elements.kb_selection:hide() end
+        return
+    end
+
+    if not state.kb_selected_inv_index then
+        elements.kb_selection:hide()
+        return
+    end
+
+    -- Check if selected item is in visible range
+    local abs_row = math.floor((state.kb_selected_inv_index - 1) / INV_COLS)
+    if abs_row < state.scroll_offset or abs_row >= state.scroll_offset + INV_VISIBLE_ROWS then
+        elements.kb_selection:hide()
+        return
+    end
+
+    local display_idx = state.kb_selected_inv_index - state.scroll_offset * INV_COLS
+    local icon_data = elements.inv_icons[display_idx]
+    if icon_data then
+        elements.kb_selection:size(ICON_SIZE, ICON_SIZE)
+        elements.kb_selection:pos(icon_data.x, icon_data.y)
+        elements.kb_selection:show()
+    else
+        elements.kb_selection:hide()
+    end
+end
+
+function ui.kb_navigate(dir)
+    if not state.kb_mode then return end
+
+    if state.kb_focus == 'inv' then
+        local items = state.inv_items or {}
+        if #items == 0 then return end
+        local col = (state.kb_inv_index - 1) % INV_COLS
+        local row = math.floor((state.kb_inv_index - 1) / INV_COLS)
+        local total_rows = math.ceil(#items / INV_COLS)
+
+        if dir == 'left' then
+            if col > 0 then
+                state.kb_inv_index = state.kb_inv_index - 1
+            end
+        elseif dir == 'right' then
+            if col < INV_COLS - 1 and state.kb_inv_index < #items then
+                state.kb_inv_index = state.kb_inv_index + 1
+            end
+        elseif dir == 'up' then
+            if row > 0 then
+                state.kb_inv_index = state.kb_inv_index - INV_COLS
+            end
+        elseif dir == 'down' then
+            local new_idx = state.kb_inv_index + INV_COLS
+            if new_idx <= #items then
+                state.kb_inv_index = new_idx
+            elseif row < total_rows - 1 then
+                state.kb_inv_index = #items
+            end
+        end
+
+        if state.kb_inv_index < 1 then state.kb_inv_index = 1 end
+        if state.kb_inv_index > #items then state.kb_inv_index = #items end
+
+        local item = items[state.kb_inv_index]
+        if item then ui.update_tooltip(item) end
+
+    elseif state.kb_focus == 'equip' then
+        if dir == 'left' then
+            if state.kb_equip_col > 0 then state.kb_equip_col = state.kb_equip_col - 1 end
+        elseif dir == 'right' then
+            if state.kb_equip_col < 3 then state.kb_equip_col = state.kb_equip_col + 1 end
+        elseif dir == 'up' then
+            if state.kb_equip_row > 0 then state.kb_equip_row = state.kb_equip_row - 1 end
+        elseif dir == 'down' then
+            if state.kb_equip_row < 3 then state.kb_equip_row = state.kb_equip_row + 1 end
+        end
+
+        local slot_name = equip_nav_grid[state.kb_equip_row] and equip_nav_grid[state.kb_equip_row][state.kb_equip_col]
+        if slot_name then
+            local icon_data = elements.equip_icons[slot_name]
+            if icon_data and icon_data.item then
+                ui.update_tooltip(icon_data.item)
+            end
+        end
+
+    elseif state.kb_focus == 'bags' then
+        local count = #ORG_BAG_LIST
+        if dir == 'up' then
+            local new_idx = state.kb_bag_index - 1
+            while new_idx >= 1 and ORG_BAG_LIST[new_idx].key == '_divider' do
+                new_idx = new_idx - 1
+            end
+            if new_idx >= 1 then state.kb_bag_index = new_idx end
+        elseif dir == 'down' then
+            local new_idx = state.kb_bag_index + 1
+            while new_idx <= count and ORG_BAG_LIST[new_idx].key == '_divider' do
+                new_idx = new_idx + 1
+            end
+            if new_idx <= count then state.kb_bag_index = new_idx end
+        end
+    end
+
+    ui.update_kb_cursor()
+    ui.update_kb_selection()
+end
+
+function ui.kb_switch_focus()
+    if not state.kb_mode then return end
+
+    if state.mode == 'gearswap' then
+        if state.kb_focus == 'inv' then
+            state.kb_focus = 'equip'
+        else
+            state.kb_focus = 'inv'
+        end
+    elseif state.mode == 'organizer' then
+        if state.kb_focus == 'inv' then
+            state.kb_focus = 'bags'
+        else
+            state.kb_focus = 'inv'
+        end
+    end
+
+    ui.update_kb_cursor()
+end
+
+-- Returns action info for gsui.lua to handle
+function ui.kb_select()
+    if not state.kb_mode then return nil end
+
+    if state.kb_focus == 'inv' then
+        local items = state.inv_items or {}
+        local item = items[state.kb_inv_index]
+        if not item then return nil end
+
+        -- Toggle selection on same item
+        if state.kb_selected_item and state.kb_selected_inv_index == state.kb_inv_index then
+            state.kb_selected_item = nil
+            state.kb_selected_inv_index = nil
+            ui.update_kb_selection()
+            return { type = 'deselect' }
+        end
+
+        -- Select this item
+        state.kb_selected_item = item
+        state.kb_selected_inv_index = state.kb_inv_index
+        ui.update_kb_selection()
+
+        -- Auto-switch focus to target panel
+        if state.mode == 'gearswap' then
+            state.kb_focus = 'equip'
+        elseif state.mode == 'organizer' then
+            state.kb_focus = 'bags'
+        end
+        ui.update_kb_cursor()
+
+        return { type = 'select', item = item }
+
+    elseif state.kb_focus == 'equip' then
+        if state.kb_selected_item then
+            local slot_name = equip_nav_grid[state.kb_equip_row] and equip_nav_grid[state.kb_equip_row][state.kb_equip_col]
+            if slot_name then
+                local item = state.kb_selected_item
+                state.kb_selected_item = nil
+                state.kb_selected_inv_index = nil
+                ui.update_kb_selection()
+                state.kb_focus = 'inv'
+                ui.update_kb_cursor()
+                return { type = 'equip', slot = slot_name, item = item }
+            end
+        else
+            -- No item selected, just show tooltip
+            local slot_name = equip_nav_grid[state.kb_equip_row] and equip_nav_grid[state.kb_equip_row][state.kb_equip_col]
+            if slot_name then
+                local icon_data = elements.equip_icons[slot_name]
+                if icon_data and icon_data.item then
+                    ui.update_tooltip(icon_data.item)
+                end
+            end
+        end
+
+    elseif state.kb_focus == 'bags' then
+        if state.kb_selected_item then
+            local bag_def = ORG_BAG_LIST[state.kb_bag_index]
+            if bag_def and bag_def.key ~= '_divider' then
+                local item = state.kb_selected_item
+                state.kb_selected_item = nil
+                state.kb_selected_inv_index = nil
+                ui.update_kb_selection()
+                state.kb_focus = 'inv'
+                ui.update_kb_cursor()
+                return { type = 'bag', bag_name = bag_def.key, item = item }
+            end
+        else
+            -- No item selected, show bag contents
+            local bag_def = ORG_BAG_LIST[state.kb_bag_index]
+            if bag_def and bag_def.key ~= '_divider' then
+                return { type = 'show_bag', bag_name = bag_def.key }
+            end
+        end
+    end
+
+    return nil
+end
+
+function ui.kb_cancel()
+    if not state.kb_mode then return end
+    state.kb_selected_item = nil
+    state.kb_selected_inv_index = nil
+    ui.update_kb_selection()
+    state.kb_focus = 'inv'
+    ui.update_kb_cursor()
 end
 
 return ui
