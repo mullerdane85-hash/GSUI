@@ -15,6 +15,7 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 - `/gsui gen` - Generate GearSwap set to clipboard
 - `/gsui clear` - Reset to currently equipped gear
 - `/gsui org` - Toggle between GearSwap and Organizer mode
+- `/gsui kb` - Toggle between Keyboard and Drag mode
 - `/gsui gamepath <path>` - Override FFXI install path (auto-detected, rarely needed)
 - `/gsui help` - Show command list in-game
 
@@ -51,6 +52,7 @@ Stats with known caps (Fast Cast 80%, Haste 26%, DT 50%, etc.) show the cap and 
 Build GearSwap sets visually. Your current equipment and all equippable items for your job are displayed with icons.
 
 - **Drag** items from the inventory grid onto equipment slots to build a set
+- **Keyboard mode** - Arrow keys to navigate items, Enter to select, Tab to switch to equip slots, Enter to assign, Escape to cancel
 - **Filter** items by stat/ability using the dropdown (auto-detects relevant filters)
 - **Generate Set** copies a GearSwap-formatted Lua table to your clipboard
 - **Remove All** clears all slots for a blank set
@@ -64,10 +66,23 @@ Click the **Organizer** tab to switch. Browse and manage items across all bags.
 - **Sorting toggle** (top-right of grid) switches between **Gear First** and **Items First**
   - Gear First: equipment sorted by slot, weapon type, item level, equip level; then items alphabetically
   - Items First: items alphabetically, then equipment after
-- **Drag items** from the grid onto a bag in the left panel to move them
+- **Drag items** from the grid onto a bag in the left panel to move them (or use keyboard mode: Enter to select, Tab to bags, Enter to assign)
 - **Conflicts** button finds duplicate rings/earrings in the same bag (GearSwap can't distinguish identical items in L/R slots)
 - **Scattered** button finds non-equipment items split across multiple bags
   - Dragging a scattered item onto a bag consolidates ALL copies from every bag into that destination
+
+## Keyboard Navigation Mode
+
+Toggle with `/gsui kb` or click `[Drag]`/`[KB]` on the title bar. The setting persists across sessions.
+
+In keyboard mode, all game mouse input is blocked so you won't accidentally move the camera or target while navigating.
+
+- **Arrow keys** - Navigate inventory grid, equip slots, or bag list
+- **Enter** - Select an item from inventory (focus auto-switches to equip/bag panel), then Enter again on a target to assign
+- **Tab** - Manually switch focus between inventory and equip slots (GearSwap) or bag list (Organizer)
+- **Escape** - Cancel current selection
+
+A gold highlight shows your cursor position. A green highlight marks the selected item in inventory.
 
 ## Mog House
 
