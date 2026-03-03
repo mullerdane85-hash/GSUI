@@ -639,6 +639,12 @@ end
 
 local function kb_handle_enter()
     local focus = ui.get_kb_focus()
+    if focus == 'filter' then
+        local idx = ui.kb_get_filter_index()
+        ui.set_active_filter(idx)
+        ui.kb_close_filter()
+        return
+    end
     if focus == 'equip' and not ui.get_kb_selected_item() then
         local slot_name = ui.get_kb_equip_slot()
         local icon_data = ui.get_equip_icon_data(slot_name)
@@ -658,7 +664,9 @@ local function kb_handle_enter()
 end
 
 local function kb_handle_escape()
-    if ui.get_slot_filter() then
+    if ui.get_kb_focus() == 'filter' then
+        ui.kb_close_filter()
+    elseif ui.get_slot_filter() then
         ui.clear_slot_filter()
         ui.set_inv_label('All Storage')
         apply_filter()
@@ -708,6 +716,14 @@ local function kb_handle_f3()
     windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
 end
 
+local function kb_handle_f4()
+    if ui.get_kb_focus() == 'filter' then
+        ui.kb_close_filter()
+    else
+        ui.kb_open_filter()
+    end
+end
+
 local fn_binds_active = false
 
 activate_fn_binds = function()
@@ -716,6 +732,7 @@ activate_fn_binds = function()
     windower.send_command('bind F1 gsui kb_f1')
     windower.send_command('bind F2 gsui kb_f2')
     windower.send_command('bind F3 gsui kb_f3')
+    windower.send_command('bind F4 gsui kb_f4')
 end
 
 deactivate_fn_binds = function()
@@ -724,6 +741,7 @@ deactivate_fn_binds = function()
     windower.send_command('unbind F1')
     windower.send_command('unbind F2')
     windower.send_command('unbind F3')
+    windower.send_command('unbind F4')
 end
 
 activate_kb_binds = function()
@@ -1139,6 +1157,7 @@ windower.register_event('addon command', function(...)
     elseif cmd == 'kb_f1' then kb_handle_f1()
     elseif cmd == 'kb_f2' then kb_handle_f2()
     elseif cmd == 'kb_f3' then kb_handle_f3()
+    elseif cmd == 'kb_f4' then kb_handle_f4()
     else
         windower.add_to_chat(207, 'GSUI: Unknown command. Use /gsui help')
     end

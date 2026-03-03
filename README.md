@@ -15,9 +15,18 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 - **New**: Improved filter matching — "Enhancing Magic" filter now catches items like Incanter's Torque
 - **New**: Save/Load gear sets — save named sets, load them back, manage via commands (`/gsui save`, `/gsui load`, `/gsui sets`, `/gsui delete`)
 
-## Keybind
+### v1.2.1
+- **New**: F1/F2/F3/F4 keybinds — F1 GearSwap, F2 Organizer, F3 toggle KB/Drag mode, F4 open filter dropdown
+- **New**: Filter dropdown navigable in KB mode — F4 opens it, arrow keys browse, Enter selects, Escape closes
+- **New**: Keybind hints shown on tabs: `GearSwap [F1]`, `Organizer [F2]`, `[F3:KB]`, `[F4] Filter`
+
+## Keybinds
 
 - **B** - Toggle window open/close (automatically ignored while typing in chat)
+- **F1** - Switch to GearSwap tab (when GSUI is visible)
+- **F2** - Switch to Organizer tab (when GSUI is visible)
+- **F3** - Toggle KB/Drag mode (when GSUI is visible)
+- **F4** - Open/close filter dropdown (when GSUI is visible); navigate with arrows + Enter in KB mode
 
 ## Commands
 

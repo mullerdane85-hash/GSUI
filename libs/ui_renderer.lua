@@ -165,6 +165,7 @@ local state = {
     kb_selected_item = nil,
     kb_selected_inv_index = nil,
     kb_mode_rect = {},
+    kb_filter_index = 1,
     -- Slot filter
     slot_filter = nil,
     -- Save/load
@@ -484,7 +485,7 @@ function ui.build()
     local filter_y = scroll_y + SCROLL_BTN_H + 2
     elements.filter_dropdown = {
         bg = make_bg(inv_x, filter_y, right_panel_w, FILTER_BAR_H, 200, 30, 60, 120),
-        text = make_text('Filter: All', inv_x + 8, filter_y + 4, 10, 220, 220, 255, true),
+        text = make_text('[F4] Filter: All', inv_x + 8, filter_y + 4, 10, 220, 220, 255, true),
         arrow = make_text('v', inv_x + right_panel_w - 18, filter_y + 4, 10, 200, 200, 240, true),
         x = inv_x, y = filter_y, w = right_panel_w, h = FILTER_BAR_H,
     }
@@ -493,7 +494,7 @@ function ui.build()
     elements.filter_dropdown.arrow:show()
     local active_preset = state.filter_presets[state.active_filter]
     if active_preset then
-        elements.filter_dropdown.text:text('Filter: ' .. active_preset.name)
+        elements.filter_dropdown.text:text('[F4] Filter: ' .. active_preset.name)
     end
 
     -- === TOOLTIP PANEL (full height) ===
@@ -603,7 +604,7 @@ function ui.update_filter_presets(presets)
 
     -- Update dropdown button text
     if elements.filter_dropdown then
-        elements.filter_dropdown.text:text('Filter: All')
+        elements.filter_dropdown.text:text('[F4] Filter: All')
     end
 
     -- Recalculate menu dimensions
@@ -722,6 +723,41 @@ function ui.toggle_dropdown()
     end
 end
 
+function ui.highlight_filter_item(preset_index)
+    for _, item in ipairs(elements.filter_menu_items) do
+        if item.preset_index == preset_index then
+            item.bg:color(80, 140, 240)
+            item.bg:alpha(255)
+            item.text:color(255, 255, 255)
+        elseif item.preset_index == state.active_filter then
+            item.bg:color(50, 100, 200)
+            item.bg:alpha(240)
+            item.text:color(255, 255, 255)
+        elseif item.preset_index > 0 then
+            item.bg:color(25, 25, 60)
+            item.bg:alpha(240)
+            item.text:color(200, 200, 230)
+        end
+    end
+end
+
+function ui.kb_open_filter()
+    state.kb_filter_index = state.active_filter
+    state.kb_focus = 'filter'
+    ui.open_dropdown()
+    ui.highlight_filter_item(state.kb_filter_index)
+end
+
+function ui.kb_close_filter()
+    ui.close_dropdown()
+    state.kb_focus = 'inv'
+    ui.update_kb_cursor()
+end
+
+function ui.kb_get_filter_index()
+    return state.kb_filter_index
+end
+
 function ui.is_dropdown_open()
     return state.dropdown_open
 end
@@ -730,7 +766,7 @@ function ui.set_active_filter(preset_index)
     state.active_filter = preset_index
     local preset = state.filter_presets[preset_index]
     if preset and elements.filter_dropdown then
-        elements.filter_dropdown.text:text('Filter: ' .. preset.name)
+        elements.filter_dropdown.text:text('[F4] Filter: ' .. preset.name)
     end
     ui.close_dropdown()
     if state.on_filter then
@@ -1941,6 +1977,10 @@ function ui.update_kb_cursor()
         else
             elements.kb_cursor:hide()
         end
+
+    elseif state.kb_focus == 'filter' then
+        -- Filter dropdown has its own highlight, hide the general cursor
+        elements.kb_cursor:hide()
     end
 end
 
@@ -2044,6 +2084,30 @@ function ui.kb_navigate(dir)
             end
             if new_idx <= count then state.kb_bag_index = new_idx end
         end
+
+    elseif state.kb_focus == 'filter' then
+        local count = #state.filter_presets
+        if count == 0 then return end
+        if dir == 'up' then
+            if state.kb_filter_index > 1 then
+                state.kb_filter_index = state.kb_filter_index - 1
+                -- scroll menu if needed
+                if state.kb_filter_index <= state.menu_scroll then
+                    state.menu_scroll = state.kb_filter_index - 1
+                end
+            end
+        elseif dir == 'down' then
+            if state.kb_filter_index < count then
+                state.kb_filter_index = state.kb_filter_index + 1
+                -- scroll menu if needed
+                if state.kb_filter_index > state.menu_scroll + MENU_VISIBLE then
+                    state.menu_scroll = state.kb_filter_index - MENU_VISIBLE
+                end
+            end
+        end
+        ui.refresh_menu_items()
+        -- highlight the current kb selection
+        ui.highlight_filter_item(state.kb_filter_index)
     end
 
     ui.update_kb_cursor()
