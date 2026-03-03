@@ -231,6 +231,10 @@ local function update_stats(eq)
     ui.update_stat_text(summary)
 end
 
+-- Forward declarations for KB bind functions (defined after handle_kb_action)
+local activate_kb_binds
+local deactivate_kb_binds
+
 -- Initialize
 local function initialize()
     if initialized then return end
@@ -661,7 +665,7 @@ local function kb_handle_delete()
     end
 end
 
-local function activate_kb_binds()
+activate_kb_binds = function()
     if kb_binds_active then return end
     kb_binds_active = true
     windower.send_command('bind up gsui kb_up')
@@ -675,7 +679,7 @@ local function activate_kb_binds()
     windower.send_command('bind backspace gsui kb_delete')
 end
 
-local function deactivate_kb_binds()
+deactivate_kb_binds = function()
     if not kb_binds_active then return end
     kb_binds_active = false
     windower.send_command('unbind up')
