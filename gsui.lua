@@ -235,6 +235,15 @@ end
 local activate_kb_binds
 local deactivate_kb_binds
 
+-- Sync binds to current state: active only when visible + KB mode
+local function sync_kb_binds()
+    if initialized and ui.is_visible() and ui.get_kb_mode() then
+        activate_kb_binds()
+    else
+        deactivate_kb_binds()
+    end
+end
+
 -- Initialize
 local function initialize()
     if initialized then return end
@@ -253,8 +262,8 @@ local function initialize()
     -- Restore KB mode
     if settings.kb_mode then
         ui.set_kb_mode(true)
-        activate_kb_binds()
     end
+    sync_kb_binds()
 
     -- Register filter callback
     ui.set_on_filter(function()
@@ -370,7 +379,7 @@ local function handle_click(mx, my)
         local enabled = ui.toggle_kb_mode()
         settings.kb_mode = enabled
         config.save(settings)
-        if enabled then activate_kb_binds() else deactivate_kb_binds() end
+        sync_kb_binds()
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
         return true
     elseif hit.type == 'sort_toggle' then
@@ -775,6 +784,7 @@ windower.register_event('incoming chunk', function(id, original, modified, injec
         bag_org.set_mog_house(false)
         ui.set_mog_house(false)
         ui.hide()
+        sync_kb_binds()
     end
 end)
 
@@ -897,9 +907,11 @@ windower.register_event('status change', function(new_status_id)
     if not initialized then return end
     if new_status_id == 4 then
         ui.hide()
+        sync_kb_binds()
     else
         if settings.visible ~= false then
             ui.show()
+            sync_kb_binds()
         end
     end
 end)
@@ -916,15 +928,18 @@ windower.register_event('addon command', function(...)
         ui.toggle()
         settings.visible = ui.is_visible()
         config.save(settings)
+        sync_kb_binds()
     elseif cmd == 'show' then
         if not initialized then initialize() end
         ui.show()
         settings.visible = true
         config.save(settings)
+        sync_kb_binds()
     elseif cmd == 'hide' then
         ui.hide()
         settings.visible = false
         config.save(settings)
+        sync_kb_binds()
     elseif cmd == 'refresh' or cmd == 'scan' then
         refresh_data()
         windower.add_to_chat(207, 'GSUI: Refreshed.')
@@ -983,7 +998,7 @@ windower.register_event('addon command', function(...)
         local enabled = ui.toggle_kb_mode()
         settings.kb_mode = enabled
         config.save(settings)
-        if enabled then activate_kb_binds() else deactivate_kb_binds() end
+        sync_kb_binds()
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
     elseif cmd == 'save' then
         local name = args[1]
