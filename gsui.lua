@@ -234,13 +234,22 @@ end
 -- Forward declarations for KB bind functions (defined after handle_kb_action)
 local activate_kb_binds
 local deactivate_kb_binds
+local activate_fn_binds
+local deactivate_fn_binds
 
--- Sync binds to current state: active only when visible + KB mode
+-- Sync binds to current state
+-- F1/F2/F3 active whenever visible; nav keys active when visible + KB mode
 local function sync_kb_binds()
-    if initialized and ui.is_visible() and ui.get_kb_mode() then
-        activate_kb_binds()
+    if initialized and ui.is_visible() then
+        activate_fn_binds()
+        if ui.get_kb_mode() then
+            activate_kb_binds()
+        else
+            deactivate_kb_binds()
+        end
     else
         deactivate_kb_binds()
+        deactivate_fn_binds()
     end
 end
 
@@ -674,6 +683,49 @@ local function kb_handle_delete()
     end
 end
 
+local function kb_handle_f1()
+    if ui.get_mode() ~= 'gearswap' then
+        ui.set_mode('gearswap')
+        ui.set_inv_label('All Storage')
+        ui.update_inventory(cached_all_items)
+        apply_filter()
+    end
+end
+
+local function kb_handle_f2()
+    if ui.get_mode() ~= 'organizer' then
+        ui.set_mode('organizer')
+        refresh_organizer()
+        show_org_bag('inventory')
+    end
+end
+
+local function kb_handle_f3()
+    local enabled = ui.toggle_kb_mode()
+    settings.kb_mode = enabled
+    config.save(settings)
+    sync_kb_binds()
+    windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
+end
+
+local fn_binds_active = false
+
+activate_fn_binds = function()
+    if fn_binds_active then return end
+    fn_binds_active = true
+    windower.send_command('bind F1 gsui kb_f1')
+    windower.send_command('bind F2 gsui kb_f2')
+    windower.send_command('bind F3 gsui kb_f3')
+end
+
+deactivate_fn_binds = function()
+    if not fn_binds_active then return end
+    fn_binds_active = false
+    windower.send_command('unbind F1')
+    windower.send_command('unbind F2')
+    windower.send_command('unbind F3')
+end
+
 activate_kb_binds = function()
     if kb_binds_active then return end
     kb_binds_active = true
@@ -722,6 +774,7 @@ end)
 
 windower.register_event('logout', function()
     deactivate_kb_binds()
+    deactivate_fn_binds()
     if initialized then
         save_position()
         ui.destroy()
@@ -731,6 +784,7 @@ end)
 
 windower.register_event('unload', function()
     deactivate_kb_binds()
+    deactivate_fn_binds()
     if initialized then
         save_position()
         ui.destroy()
@@ -1082,6 +1136,9 @@ windower.register_event('addon command', function(...)
     elseif cmd == 'kb_enter' then kb_handle_enter()
     elseif cmd == 'kb_escape' then kb_handle_escape()
     elseif cmd == 'kb_delete' then kb_handle_delete()
+    elseif cmd == 'kb_f1' then kb_handle_f1()
+    elseif cmd == 'kb_f2' then kb_handle_f2()
+    elseif cmd == 'kb_f3' then kb_handle_f3()
     else
         windower.add_to_chat(207, 'GSUI: Unknown command. Use /gsui help')
     end

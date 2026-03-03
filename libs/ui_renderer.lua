@@ -279,14 +279,14 @@ function ui.build()
     state.tab_gs_rect = { x = tab_x, y = tab_y, w = tab_w, h = tab_h }
     elements.tab_gs_bg = make_bg(tab_x, tab_y, tab_w, tab_h, 240, 50, 100, 180)
     elements.tab_gs_bg:show()
-    elements.tab_gs_text = make_text('GearSwap', tab_x + math.floor(tab_w / 2) - 30, tab_y + 4, 11, 255, 255, 255, true)
+    elements.tab_gs_text = make_text('GearSwap [F1]', tab_x + math.floor(tab_w / 2) - 42, tab_y + 4, 11, 255, 255, 255, true)
     elements.tab_gs_text:show()
 
     local tab2_x = tab_x + tab_w + 4
     state.tab_org_rect = { x = tab2_x, y = tab_y, w = tab_w, h = tab_h }
     elements.tab_org_bg = make_bg(tab2_x, tab_y, tab_w, tab_h, 180, 30, 40, 70)
     elements.tab_org_bg:show()
-    elements.tab_org_text = make_text('Organizer', tab2_x + math.floor(tab_w / 2) - 34, tab_y + 4, 11, 160, 160, 200, true)
+    elements.tab_org_text = make_text('Organizer [F2]', tab2_x + math.floor(tab_w / 2) - 46, tab_y + 4, 11, 160, 160, 200, true)
     elements.tab_org_text:show()
 
     -- Apply tab highlight for current mode
@@ -565,7 +565,7 @@ function ui.build()
     elements.kb_selection = make_bg(0, 0, ICON_SIZE, ICON_SIZE, 80, 50, 255, 50)
 
     -- Mode toggle on title bar
-    local mode_label = state.kb_mode and '[KB]' or '[Drag]'
+    local mode_label = state.kb_mode and '[F3:KB]' or '[F3:Drag]'
     local mode_x = tb_x + tb_w - 55
     elements.kb_mode_text = make_text(mode_label, mode_x, tb_y + 7, 9, 180, 220, 255, true)
     elements.kb_mode_text:show()
@@ -1761,7 +1761,7 @@ end
 function ui.set_mog_house(in_mog)
     state.in_mog_house = in_mog
     if state.mode == 'organizer' then
-        elements.tab_org_text:text(in_mog and 'Organizer [MH]' or 'Organizer')
+        elements.tab_org_text:text(in_mog and 'Org [F2] [MH]' or 'Organizer [F2]')
     end
 end
 
@@ -1835,7 +1835,7 @@ end
 function ui.set_kb_mode(enabled)
     state.kb_mode = enabled
     if elements.kb_mode_text then
-        elements.kb_mode_text:text(enabled and '[KB]' or '[Drag]')
+        elements.kb_mode_text:text(enabled and '[F3:KB]' or '[F3:Drag]')
     end
     if not enabled then
         if elements.kb_cursor then elements.kb_cursor:hide() end
