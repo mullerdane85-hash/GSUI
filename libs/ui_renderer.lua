@@ -921,11 +921,16 @@ function ui.refresh_inv_grid()
             -- is no longer gating icon loads.
             icon_handler.load_icon(icon_data.image, item.id)
             -- Tint yellow if this item is in the multi-select set.
-            if ui.is_selected(item) then
-                pcall(function() icon_data.image:color(255, 220, 80) end)
-            else
-                pcall(function() icon_data.image:color(255, 255, 255) end)
-            end
+            -- image:update() is required after color() to actually commit the
+            -- tint to the render state.
+            pcall(function()
+                if ui.is_selected(item) then
+                    icon_data.image:color(255, 220, 80)
+                else
+                    icon_data.image:color(255, 255, 255)
+                end
+                icon_data.image:update()
+            end)
         else
             icon_data.item = nil
             icon_data.visible = false

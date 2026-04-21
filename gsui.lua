@@ -911,12 +911,11 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                 ui.set_status('Removed ' .. hit.slot)
                 windower.add_to_chat(207, 'GSUI: Removed ' .. hit.slot)
             elseif hit and hit.type == 'inv_item' and hit.item then
-                -- Toggle item in multi-select set (organizer mode only)
-                if ui.get_mode() == 'organizer' then
-                    local now_selected = ui.toggle_selection(hit.item)
-                    local count = ui.selection_count()
-                    ui.set_status((now_selected and 'Selected: ' or 'Deselected: ') .. hit.item.name .. ' (' .. count .. ')')
-                end
+                -- Toggle item in multi-select set (works in both modes;
+                -- bulk-move via right-click on a bag only fires in Organizer).
+                local now_selected = ui.toggle_selection(hit.item)
+                local count = ui.selection_count()
+                ui.set_status((now_selected and 'Selected: ' or 'Deselected: ') .. hit.item.name .. ' (' .. count .. ')')
             elseif hit and hit.type == 'org_bag' and hit.bag_name then
                 -- Move every selected item into this bag
                 local dest = hit.bag_name

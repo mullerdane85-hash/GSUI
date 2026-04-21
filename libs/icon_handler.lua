@@ -110,9 +110,16 @@ function icon_handler.load_icon(image, item_id)
         -- apply because item_by_id's coroutine.yield is swallowed by pcall,
         -- leaving the image in an inconsistent state. Retry at several delays
         -- so the texture binds as soon as the file/texture system settles.
+        -- Retries only re-bind path + update (NOT color/alpha/show) so any
+        -- tints set by callers (e.g. multi-select yellow highlight) survive.
         for _, delay in ipairs({0.05, 0.25, 0.75, 2.0}) do
             coroutine.schedule(function()
-                if image then apply_texture(image, path) end
+                if image then
+                    pcall(function()
+                        image:path(path)
+                        image:update()
+                    end)
+                end
             end, delay)
         end
     end
