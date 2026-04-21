@@ -20,7 +20,18 @@ function organizer.set_mog_house(val)
     in_mog_house = val
 end
 
+-- Returns whether the player is in their mog house.
+-- Prefers a live check against `windower.ffxi.get_items().safe.enabled` (ground
+-- truth from the client — the Mog Safe is only `enabled` when inside the mog
+-- house). Packet-based detection (0x05F BGM, 0x00A zone finish) is still wired
+-- up to update the cached flag, but the live check fixes the case where GSUI
+-- was loaded while already inside the mog house — neither packet fires then.
 function organizer.is_in_mog_house()
+    local ok, items = pcall(windower.ffxi.get_items)
+    if ok and items and items.safe and items.safe.enabled ~= nil then
+        in_mog_house = items.safe.enabled and true or false
+        return in_mog_house
+    end
     return in_mog_house
 end
 
