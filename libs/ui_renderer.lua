@@ -838,8 +838,11 @@ function ui.update_equipment(equipment_data)
         if eq and eq.item then
             icon_data.item = eq.item
             icon_data.visible = true
-            -- Only show icons if visible and in gearswap mode
-            if state.visible and state.mode == 'gearswap' then
+            -- Load texture unconditionally. `state.visible` was previously guarding
+            -- this, but `initialize()` runs before the window is ever made visible,
+            -- so icons never bound their textures on first open. Visibility is
+            -- handled by the image's own alpha/show, not by skipping the load.
+            if state.mode == 'gearswap' then
                 icon_handler.load_icon(icon_data.image, eq.item.id)
             end
         else
@@ -870,9 +873,9 @@ function ui.refresh_inv_grid()
         if item then
             icon_data.item = item
             icon_data.visible = true
-            if state.visible then
-                icon_handler.load_icon(icon_data.image, item.id)
-            end
+            -- Always load. See note in update_equipment for why state.visible
+            -- is no longer gating icon loads.
+            icon_handler.load_icon(icon_data.image, item.id)
         else
             icon_data.item = nil
             icon_data.visible = false
@@ -965,9 +968,19 @@ function ui.tooltip_scroll_down()
     end
 end
 
-function ui.set_status(msg)
-    if elements.status_text then
-        elements.status_text:text(msg)
+local _status_token = 0
+function ui.set_status(msg, duration)
+    if not elements.status_text then return end
+    elements.status_text:text(msg or '')
+    -- Auto-clear after `duration` seconds (default 1.5s). Skip clearing empty messages.
+    if msg and msg ~= '' then
+        _status_token = _status_token + 1
+        local my_token = _status_token
+        coroutine.schedule(function()
+            if my_token == _status_token and elements.status_text then
+                elements.status_text:text('')
+            end
+        end, duration or 1.5)
     end
 end
 
@@ -1287,6 +1300,7 @@ end
 
 function ui.show()
     state.visible = true
+    icon_handler.set_ui_visible(true)
     -- Window frame (always)
     show_element(elements.border_top)
     show_element(elements.border_bottom)
@@ -1375,6 +1389,7 @@ end
 
 function ui.hide()
     state.visible = false
+    icon_handler.set_ui_visible(false)
     ui.cancel_item_drag()
     hide_element(elements.border_top)
     hide_element(elements.border_bottom)
