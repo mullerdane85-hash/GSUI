@@ -157,6 +157,8 @@ local function refresh_organizer()
 end
 
 show_org_bag = function(bag_name)
+    -- Switching bags invalidates the current multi-select context.
+    if ui.selection_count() > 0 then ui.clear_selection() end
     ui.select_org_bag(bag_name)
     ui.set_inv_label(ui.get_bag_label(bag_name))
     local items
@@ -897,7 +899,7 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
         return true
     end
 
-    -- Right click down: remove piece from equip slot
+    -- Right click down: remove piece from equip slot / toggle multi-select / bulk-move
     if type == 3 then
         if over then
             local hit = ui.hit_test(x, y)
@@ -908,6 +910,41 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                 update_custom_stats()
                 ui.set_status('Removed ' .. hit.slot)
                 windower.add_to_chat(207, 'GSUI: Removed ' .. hit.slot)
+            elseif hit and hit.type == 'inv_item' and hit.item then
+                -- Toggle item in multi-select set (organizer mode only)
+                if ui.get_mode() == 'organizer' then
+                    local now_selected = ui.toggle_selection(hit.item)
+                    local count = ui.selection_count()
+                    ui.set_status((now_selected and 'Selected: ' or 'Deselected: ') .. hit.item.name .. ' (' .. count .. ')')
+                end
+            elseif hit and hit.type == 'org_bag' and hit.bag_name then
+                -- Move every selected item into this bag
+                local dest = hit.bag_name
+                local selected = ui.get_selected_items()
+                if #selected == 0 then
+                    ui.set_status('No items selected. Right-click items first.')
+                elseif not bag_org.is_in_mog_house() and bag_org.is_mog_bag(dest) then
+                    ui.set_status('Must be in Mog House')
+                    windower.add_to_chat(207, 'GSUI: Unable to move items to Mog House storage unless in your Mog House.')
+                else
+                    local queued, skipped = 0, 0
+                    for _, item in ipairs(selected) do
+                        if item.bag_name == dest then
+                            skipped = skipped + 1
+                        elseif not bag_org.is_in_mog_house() and bag_org.is_mog_bag(item.bag_name) then
+                            skipped = skipped + 1
+                        else
+                            bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count)
+                            queued = queued + 1
+                        end
+                    end
+                    ui.clear_selection()
+                    ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+                    windower.add_to_chat(207, 'GSUI: Moving ' .. queued .. ' items to ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+                    coroutine.schedule(function()
+                        if initialized then refresh_organizer() end
+                    end, 1 + queued * 0.5)
+                end
             end
             return true
         end
@@ -1120,6 +1157,11 @@ windower.register_event('addon command', function(...)
         else
             windower.add_to_chat(207, 'GSUI: Set "' .. name .. '" not found.')
         end
+    elseif cmd == 'deselect' or cmd == 'clear_selection' then
+        local n = ui.selection_count()
+        ui.clear_selection()
+        ui.set_status('Cleared ' .. n .. ' selection(s)')
+        windower.add_to_chat(207, 'GSUI: Cleared ' .. n .. ' selected item(s).')
     elseif cmd == 'sets' then
         local sets = set_gen.list_sets()
         if #sets == 0 then
@@ -1144,7 +1186,10 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui sets - List saved sets')
         windower.add_to_chat(207, '  /gsui org - Toggle organizer mode')
         windower.add_to_chat(207, '  /gsui kb - Toggle keyboard/drag mode')
+        windower.add_to_chat(207, '  /gsui deselect - Clear multi-select')
         windower.add_to_chat(207, '  /gsui gamepath <path> - Set FFXI install path')
+        windower.add_to_chat(207, 'Multi-move (Organizer): right-click items to select (yellow tint),')
+        windower.add_to_chat(207, '  then right-click a bag to move all selected there.')
     -- KB bind commands (called by Windower bind system)
     elseif cmd == 'kb_up' then kb_handle_up()
     elseif cmd == 'kb_down' then kb_handle_down()

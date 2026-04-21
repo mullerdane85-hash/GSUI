@@ -139,6 +139,8 @@ local state = {
     org_conflicts = {},
     org_scattered = {},
     in_mog_house = false,
+    -- Multi-select (organizer mode): keyed by "<bag_name>:<bag_index>" for uniqueness.
+    selected_set = {},
     tab_gs_rect = {},
     tab_org_rect = {},
     org_conflict_btn_rect = {},
@@ -860,6 +862,48 @@ function ui.update_inventory(all_items)
     ui.refresh_inv_grid()
 end
 
+-- Stable key for multi-select (bag + slot index uniquely identifies an item).
+local function sel_key(item)
+    if not item or not item.bag_name or not item.bag_index then return nil end
+    return item.bag_name .. ':' .. item.bag_index
+end
+
+function ui.toggle_selection(item)
+    local key = sel_key(item)
+    if not key then return false end
+    if state.selected_set[key] then
+        state.selected_set[key] = nil
+    else
+        state.selected_set[key] = item
+    end
+    ui.refresh_inv_grid()
+    return state.selected_set[key] ~= nil
+end
+
+function ui.is_selected(item)
+    local key = sel_key(item)
+    return key and state.selected_set[key] ~= nil or false
+end
+
+function ui.get_selected_items()
+    local list = {}
+    for _, item in pairs(state.selected_set) do
+        list[#list + 1] = item
+    end
+    return list
+end
+
+function ui.selection_count()
+    local n = 0
+    for _ in pairs(state.selected_set) do n = n + 1 end
+    return n
+end
+
+function ui.clear_selection()
+    state.selected_set = {}
+    ui.refresh_inv_grid()
+end
+
 function ui.refresh_inv_grid()
     local items = state.inv_items
     local start = state.scroll_offset * INV_COLS + 1
@@ -876,6 +920,12 @@ function ui.refresh_inv_grid()
             -- Always load. See note in update_equipment for why state.visible
             -- is no longer gating icon loads.
             icon_handler.load_icon(icon_data.image, item.id)
+            -- Tint yellow if this item is in the multi-select set.
+            if ui.is_selected(item) then
+                pcall(function() icon_data.image:color(255, 220, 80) end)
+            else
+                pcall(function() icon_data.image:color(255, 255, 255) end)
+            end
         else
             icon_data.item = nil
             icon_data.visible = false
