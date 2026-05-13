@@ -157,6 +157,10 @@ local state = {
     stat_scroll = 0,
     stat_max_lines = 10,
     stat_rect = {},
+    -- Stat panel view mode: 'gear' shows gear-only contributions,
+    -- 'total' shows full computed totals (Accuracy, Attack, Magic Acc, etc).
+    stat_view = 'gear',
+    stat_label_rect = {},
     -- Keyboard navigation
     kb_mode = false,
     kb_focus = 'inv',
@@ -521,8 +525,9 @@ function ui.build()
     local st_h = content_h
     elements.stat_bg = make_bg(st_x, st_y, STAT_W, st_h, 230, 8, 18, 28)
     elements.stat_bg:show()
-    elements.stat_label = make_text('Gear Stats', st_x + TOOLTIP_PAD, st_y + 4, 10, 100, 200, 255, true)
+    elements.stat_label = make_text('Gear Stats  [click to toggle]', st_x + TOOLTIP_PAD, st_y + 4, 10, 100, 200, 255, true)
     elements.stat_label:show()
+    state.stat_label_rect = { x = st_x, y = st_y, w = STAT_W, h = 16 }
     elements.stat_text = make_text('Equip gear to see totals.', st_x + TOOLTIP_PAD, st_y + 20, 9, 200, 200, 220)
     elements.stat_text:show()
 
@@ -1039,6 +1044,20 @@ function ui.set_status(msg, duration)
     end
 end
 
+-- Stat view mode toggle. Returns the new mode.
+function ui.toggle_stat_view()
+    state.stat_view = (state.stat_view == 'gear') and 'total' or 'gear'
+    if elements.stat_label then
+        local title = (state.stat_view == 'total') and 'Total Stats  [click to toggle]' or 'Gear Stats  [click to toggle]'
+        elements.stat_label:text(title)
+    end
+    return state.stat_view
+end
+
+function ui.get_stat_view()
+    return state.stat_view or 'gear'
+end
+
 function ui.update_stat_text(summary_text)
     if not elements.stat_text then return end
     state.stat_lines = split_lines(summary_text or '')
@@ -1294,6 +1313,12 @@ function ui.hit_test(mx, my)
     local tr = state.tooltip_rect
     if tr and tr.x and mx >= tr.x and mx <= tr.x + tr.w and my >= tr.y and my <= tr.y + tr.h then
         return { type = 'tooltip_panel' }
+    end
+
+    -- Stat panel header (clickable to toggle gear-only / total view)
+    local slr = state.stat_label_rect
+    if slr and slr.x and mx >= slr.x and mx <= slr.x + slr.w and my >= slr.y and my <= slr.y + slr.h then
+        return { type = 'stat_label' }
     end
 
     -- Stat panel

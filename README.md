@@ -4,6 +4,24 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 
 ## Updates
 
+### v1.3.0
+- **New**: Clickable Gear Stats header — toggles between **Gear Stats** view (gear-only contributions, the original behavior) and **Total Stats** view (computed totals including base STR/DEX/etc. and skill tiers)
+- **New**: Total Stats view shows real-game **Accuracy**, **Attack**, and **Magic Accuracy** combining DEX/STR/skill bases with gear bonuses, using BG-wiki skill→accuracy tier formulas
+- **New**: A `-- Total Accuracy --` block is also injected at the top of the regular Gear Stats panel so you can always see the combined Accuracy number without switching views
+- **New**: Player stats (STR/DEX/VIT/AGI/INT/MND/CHR/HP/MP) are now cached from incoming Char Stats packet `0x061` (server pushes this on login, zone, gear change, and buff change). Until the first packet arrives the panel says "stats not yet received — swap any gear once or zone to get them"
+- **New**: Persistent **inventory cache** (`libs/inventory_cache.lua`) — speeds up first-open scan by remembering item icons/data across sessions. Saved per-character to `data/inv_cache_<name>.lua` (gitignored)
+- **Bug Fix**: Stat exclude logic — extracting "Accuracy +N" from a line like `Accuracy+44 Magic Accuracy+44` was rejecting the whole line because it contained the excluded word "Mag". Now strips just the excluded stat phrase so the simple Accuracy total is correct
+- **New**: Multi-select + bulk-move in Organizer mode — shift-click or use KB mode to select multiple items, then drag/assign them as a group to a destination bag
+- **Bug Fix**: Multi-select highlight now renders correctly in either drag or keyboard mode
+- **Bug Fix**: Mog-house detection works when GSUI loads while you're already inside a mog house (previously it only ran the detection on zone-in)
+
+### v1.2.1
+- **New**: F1/F2/F3/F4 keybinds — F1 GearSwap, F2 Organizer, F3 toggle KB/Drag mode, F4 open filter dropdown
+- **New**: Filter dropdown navigable in KB mode — F4 opens it, arrow keys browse, Enter selects, Escape closes
+- **New**: Keybind hints shown on tabs: `GearSwap [F1]`, `Organizer [F2]`, `[F3:KB]`, `[F4] Filter`
+- **Bug Fix**: White-box icons no longer appear on first open (extraction cache now warms eagerly)
+- **Bug Fix**: Status messages auto-clear after a timeout instead of lingering until the next action
+
 ### v1.2.0
 - **Bug Fix**: Icons that required scrolling to see now load correctly (fixed extraction cache issue)
 - **Bug Fix**: Gear Stats panel now updates live when building custom sets and correctly calculates all stats (Magic Evasion, Damage Taken, etc.)
@@ -14,11 +32,6 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 - **New**: Active filter keywords are highlighted with >> in item tooltips
 - **New**: Improved filter matching — "Enhancing Magic" filter now catches items like Incanter's Torque
 - **New**: Save/Load gear sets — save named sets, load them back, manage via commands (`/gsui save`, `/gsui load`, `/gsui sets`, `/gsui delete`)
-
-### v1.2.1
-- **New**: F1/F2/F3/F4 keybinds — F1 GearSwap, F2 Organizer, F3 toggle KB/Drag mode, F4 open filter dropdown
-- **New**: Filter dropdown navigable in KB mode — F4 opens it, arrow keys browse, Enter selects, Escape closes
-- **New**: Keybind hints shown on tabs: `GearSwap [F1]`, `Organizer [F2]`, `[F3:KB]`, `[F4] Filter`
 
 ## Keybinds
 
@@ -58,7 +71,11 @@ All panels support mouse wheel scrolling when content overflows.
 
 ## Gear Stats Panel
 
-Displays totals from your equipped gear, grouped by category:
+The header reads **`Gear Stats  [click to toggle]`** — click it to switch between two views:
+
+### Gear Stats view (default)
+
+Sums of stats from your equipped gear, grouped by category:
 
 - **Casting** - Fast Cast, Quick Magic, Conserve MP, Spell Interrupt Down
 - **Haste** - Gear Haste (shows cap at 26%)
@@ -71,7 +88,26 @@ Displays totals from your equipped gear, grouped by category:
 - **Utility** - Refresh, Regen, Treasure Hunter
 - **Stats** - HP, MP, STR, DEX, VIT, AGI, INT, MND, CHR, Accuracy, Attack
 
-Stats with known caps (Fast Cast 80%, Haste 26%, DT 50%, etc.) show the cap and display `[CAPPED]` when reached. Stats update live whenever your equipment changes.
+A `-- Total Accuracy --` block is shown just above the Stats section as a quick reference. Stats with known caps (Fast Cast 80%, Haste 26%, DT 50%, etc.) show the cap and display `[CAPPED]` when reached. Stats update live whenever your equipment changes.
+
+### Total Stats view
+
+Computed totals combining base stats, skill, and gear:
+
+- **ACC + GACC = Total Accuracy** — `floor(DEX × 0.75) + skill_tier(weapon_skill) + gear_acc`
+- **ATK + GATK = Total Attack** — `8 + skill_tier + STR + gear_atk`
+- **MACC + GMACC = Total Magic Accuracy** — `skill_tier(highest_magic_skill) + gear_macc`
+- **GMAB** — Gear Magic Atk Bonus (no client-side computed total available)
+- **Base + Gear** — STR/DEX/VIT/AGI/INT/MND/CHR including everything FFXI credits (base, merits, JPs, gear, buffs)
+- **HP / MP** — current and max
+
+The skill tier formula matches BG-wiki:
+- skill ≤ 200 → 1:1
+- 200–400 → diminishing 0.9× after 200
+- 400–600 → diminishing 0.8× after 400
+- 600+ → 0.9× after 600
+
+Player base stats come from incoming packet `0x061` which the server pushes on login, zone, every gear change, and every buff change — so the values stay current.
 
 ## GearSwap Mode
 

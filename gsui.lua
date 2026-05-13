@@ -1,5 +1,5 @@
 _addon.name = 'GSUI'
-_addon.version = '1.2.0'
+_addon.version = '1.3.0'
 _addon.author = 'GSUI'
 _addon.commands = { 'gsui' }
 
@@ -72,7 +72,9 @@ local function update_custom_stats()
         eq[slot_name] = { item = item }
     end
     local totals = stat_parser.calc_totals(eq)
-    local summary = stat_parser.format_summary(totals)
+    local view = ui.get_stat_view and ui.get_stat_view() or 'gear'
+    local summary = (view == 'total') and stat_parser.format_total_summary(totals)
+                                       or stat_parser.format_summary(totals)
     ui.update_stat_text(summary)
 end
 
@@ -229,7 +231,9 @@ end
 
 local function update_stats(eq)
     local totals = stat_parser.calc_totals(eq)
-    local summary = stat_parser.format_summary(totals)
+    local view = ui.get_stat_view and ui.get_stat_view() or 'gear'
+    local summary = (view == 'total') and stat_parser.format_total_summary(totals)
+                                       or stat_parser.format_summary(totals)
     ui.update_stat_text(summary)
 end
 
@@ -386,7 +390,12 @@ local function handle_click(mx, my)
         end
     end
 
-    if hit.type == 'kb_mode_toggle' then
+    if hit.type == 'stat_label' then
+        ui.toggle_stat_view()
+        local eq = scanner.scan_equipment()
+        update_stats(eq)
+        return true
+    elseif hit.type == 'kb_mode_toggle' then
         local enabled = ui.toggle_kb_mode()
         settings.kb_mode = enabled
         config.save(settings)
