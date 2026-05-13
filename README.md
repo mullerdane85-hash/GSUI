@@ -5,13 +5,13 @@ A Windower 4 addon for FFXI that provides a visual gear set builder, inventory o
 ## Updates
 
 ### v1.3.0
-- **New**: Clickable Gear Stats header — toggles between **Gear Stats** view (gear-only contributions, the original behavior) and **Total Stats** view (computed totals including base STR/DEX/etc. and skill tiers)
-- **New**: Total Stats view shows real-game **Accuracy**, **Attack**, and **Magic Accuracy** combining DEX/STR/skill bases with gear bonuses, using BG-wiki skill→accuracy tier formulas
-- **New**: A `-- Total Accuracy --` block is also injected at the top of the regular Gear Stats panel so you can always see the combined Accuracy number without switching views
+- **New**: Clickable Gear Stats header — toggles between **Gear Stats** view (gear-only contributions, the original behavior) and **Total Stats** view (computed totals using base STR/DEX/etc. + skill tiers + gear)
+- **⚠ Work in progress**: The Total Stats view (Char Total Stats — computed Accuracy/Attack/Magic Accuracy/etc.) is **not producing correct numbers yet**. The toggle works and the panel renders, but the calculated totals are off. Fixes coming in a future update. Use the regular Gear Stats view for accurate gear-side numbers in the meantime.
+- **New**: A `-- Total Accuracy --` block is also injected at the top of the regular Gear Stats panel as a quick reference (same WIP caveat — display is there, accuracy of the number isn't fully trusted yet)
 - **New**: Player stats (STR/DEX/VIT/AGI/INT/MND/CHR/HP/MP) are now cached from incoming Char Stats packet `0x061` (server pushes this on login, zone, gear change, and buff change). Until the first packet arrives the panel says "stats not yet received — swap any gear once or zone to get them"
 - **New**: Persistent **inventory cache** (`libs/inventory_cache.lua`) — speeds up first-open scan by remembering item icons/data across sessions. Saved per-character to `data/inv_cache_<name>.lua` (gitignored)
 - **Bug Fix**: Stat exclude logic — extracting "Accuracy +N" from a line like `Accuracy+44 Magic Accuracy+44` was rejecting the whole line because it contained the excluded word "Mag". Now strips just the excluded stat phrase so the simple Accuracy total is correct
-- **New**: Multi-select + bulk-move in Organizer mode — shift-click or use KB mode to select multiple items, then drag/assign them as a group to a destination bag
+- **New**: Multi-select + bulk-move in Organizer mode — right-click inventory items to toggle them in/out of a selection (yellow tint shows what's selected, count is shown in the status line). Works in both Drag mode and KB mode. Then right-click a bag in the left panel to move the entire selection there. `/gsui deselect` clears the selection.
 - **Bug Fix**: Multi-select highlight now renders correctly in either drag or keyboard mode
 - **Bug Fix**: Mog-house detection works when GSUI loads while you're already inside a mog house (previously it only ran the detection on zone-in)
 
@@ -90,7 +90,9 @@ Sums of stats from your equipped gear, grouped by category:
 
 A `-- Total Accuracy --` block is shown just above the Stats section as a quick reference. Stats with known caps (Fast Cast 80%, Haste 26%, DT 50%, etc.) show the cap and display `[CAPPED]` when reached. Stats update live whenever your equipment changes.
 
-### Total Stats view
+### Total Stats view (⚠ work in progress)
+
+> The computed numbers in this view are **not accurate yet** — the formulas and skill-tier resolution still need work. The panel is wired up and toggles correctly, but treat the totals shown as approximate until a future update. The regular Gear Stats view above is fully accurate for gear-side numbers.
 
 Computed totals combining base stats, skill, and gear:
 
