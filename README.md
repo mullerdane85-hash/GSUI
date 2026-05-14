@@ -2,6 +2,16 @@
 
 A Windower 4 addon for FFXI that provides a visual gear set builder, inventory organizer, and live gear stat tracker.
 
+## Special Thanks
+
+GSUI would not exist without the work of three people who built the foundations this addon stands on. The full breakdown of what portions of GSUI derive from each is in the [Credits](#credits) section further down, but in short:
+
+- **[Rubenator](https://github.com/Rubenator)** of Leviathan — author of **EquipViewer**. `libs/icon_extractor.lua` is their code, used here under their BSD-style license. Every item icon GSUI draws goes through this module.
+- **Trv** of the Windower Discord — author of the original DAT-extraction routine inside `icon_extractor.lua` that makes reading item icons out of FFXI's game files possible at runtime.
+- **[Byrthnoth](https://github.com/Byrth)** — author of **GearSwap**. The Lua gear-set table syntax that `/gsui gen`, `/gsui save`, and `/gsui load` produce is GearSwap's native format. The slot vocabulary in `libs/set_generator.lua` is GearSwap's. Anything GSUI generates drops cleanly into a GearSwap job file.
+
+If you use GSUI, go follow / star their projects too. They've been quietly making FFXI better for years.
+
 ## Updates
 
 ### v1.3.0
