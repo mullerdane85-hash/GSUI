@@ -108,6 +108,66 @@ function icon_handler.ensure_icon(item_id)
     return windower.file_exists(path)
 end
 
+-- ============================================================================
+-- Background extraction queue (anti-stutter)
+-- ============================================================================
+-- Synchronously extracting icons during refresh_inv_grid() blocks the main
+-- thread for ~5-10 ms per missing item. With up to 64 visible slots, a fresh
+-- install can lock the UI thread for half a second on the first inventory
+-- render — perceived as stutter / frame skip. Returning users with a hot
+-- cache never see this because file_exists is cheap and short-circuits.
+--
+-- This queue defers extraction to a coroutine that processes a few items
+-- per tick. The caller's image stays at alpha=0 until extraction completes,
+-- then apply_texture binds the BMP. Net effect: icons fade in progressively
+-- over the first few hundred ms instead of the game freezing momentarily.
+local pending_queue = {}     -- { [item_id] = { image1, image2, ... } }
+local pending_running = false
+local PER_TICK = 4
+local TICK_DELAY = 0.05
+
+local function drain_pending_queue()
+    if pending_running then return end
+    if not next(pending_queue) then return end
+    pending_running = true
+    coroutine.schedule(function()
+        local processed = 0
+        local cap = PER_TICK
+        for item_id, images_list in pairs(pending_queue) do
+            if processed >= cap then break end
+            local path = icon_handler.get_icon_path(item_id)
+            pcall(icon_extractor.item_by_id, item_id, path)
+            if windower.file_exists(path) then
+                for _, image in ipairs(images_list) do
+                    if image then
+                        pcall(function()
+                            image:path(path)
+                            image:color(255, 255, 255)
+                            if ui_visible then
+                                image:alpha(230)
+                                image:show()
+                            end
+                            image:update()
+                        end)
+                    end
+                end
+            end
+            pending_queue[item_id] = nil
+            processed = processed + 1
+        end
+        pending_running = false
+        if next(pending_queue) then drain_pending_queue() end
+    end, TICK_DELAY)
+end
+
+local function queue_icon(image, item_id)
+    if not pending_queue[item_id] then
+        pending_queue[item_id] = {}
+    end
+    table.insert(pending_queue[item_id], image)
+    drain_pending_queue()
+end
+
 function icon_handler.create_image(settings_override)
     local defaults = {
         color = { alpha = 0, red = 20, green = 20, blue = 50 },
@@ -148,50 +208,29 @@ function icon_handler.load_icon(image, item_id)
     end
 
     local path = icon_handler.get_icon_path(item_id)
-    -- Track whether this is a fresh extraction. If so, the pcall-caught
-    -- coroutine.yield inside item_by_id can leave the texture unbound on
-    -- the first apply; we schedule a follow-up apply to force the bind.
-    local was_fresh = not windower.file_exists(path)
 
-    if not icon_handler.ensure_icon(item_id) then
-        image:alpha(0)
-        image:hide()
-        return false
-    end
-
-    local ok = apply_texture(image, path)
-    if not ok then
-        -- BMP exists but failed to display — delete and re-extract once.
-        pcall(os.remove, path)
-        if icon_handler.ensure_icon(item_id) then
-            apply_texture(image, path)
-            was_fresh = true
-        else
+    -- Cache hit path — common case. Apply texture immediately, snappy.
+    if windower.file_exists(path) then
+        local ok = apply_texture(image, path)
+        if not ok then
+            -- BMP exists but failed to display — delete + queue re-extract.
+            pcall(os.remove, path)
             image:alpha(0)
-            image:hide()
+            queue_icon(image, item_id)
             return false
         end
+        return true
     end
 
-    if was_fresh then
-        -- Fresh extractions sometimes fail to bind their texture on the first
-        -- apply because item_by_id's coroutine.yield is swallowed by pcall,
-        -- leaving the image in an inconsistent state. Retry at several delays
-        -- so the texture binds as soon as the file/texture system settles.
-        -- Retries only re-bind path + update (NOT color/alpha/show) so any
-        -- tints set by callers (e.g. multi-select yellow highlight) survive.
-        for _, delay in ipairs({0.05, 0.25, 0.75, 2.0}) do
-            coroutine.schedule(function()
-                if image then
-                    pcall(function()
-                        image:path(path)
-                        image:update()
-                    end)
-                end
-            end, delay)
-        end
-    end
-    return true
+    -- Cache miss — defer extraction to the background queue. Returning
+    -- false here lets the caller move on; the queue's drain step will
+    -- apply_texture to this image once the BMP is on disk. Without this
+    -- deferral, refresh_inv_grid synchronously extracts up to 64 BMPs
+    -- in a tight loop and locks the main thread for ~500 ms on first
+    -- render with a cold cache — the stutter players reported.
+    image:alpha(0)
+    queue_icon(image, item_id)
+    return false
 end
 
 function icon_handler.cleanup()
