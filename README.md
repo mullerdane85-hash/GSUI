@@ -1,3 +1,15 @@
+<!-- BEGIN DISCLAIMER (managed by FFXIWindower author; do not remove) -->
+## ⚠️ Disclaimer — Use at Your Own Risk
+
+This is unofficial, fan-made software for *Final Fantasy XI*. It is **not affiliated with, endorsed by, or supported by Square Enix Holdings Co., Ltd.** FINAL FANTASY is a registered trademark of Square Enix.
+
+**Square Enix's official position is that third-party tools and modifications to the FFXI client are prohibited by the Terms of Service.** Installing or using this software may result in account suspension, account termination, character data loss, or other action taken by Square Enix at their sole discretion.
+
+This software is provided **AS IS, without warranty of any kind**, express or implied — including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement. In no event shall the author or contributors be liable for any claim, damages, account action, lost time, lost progress, file corruption, or any other liability arising from the use of, or inability to use, this software.
+
+**By installing, building, or running this software you acknowledge that you understand and accept these risks.**
+
+<!-- END DISCLAIMER -->
 # GSUI — GSUI + GearTree-style GearSwap integration
 
 **Status: in development.** This is a fork of [GSUI](https://github.com/mullerdane85-hash/GSUI)
