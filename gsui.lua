@@ -1,6 +1,32 @@
-_addon.name = 'GSUI'
-_addon.version = '2.0.0'
-_addon.author = 'mullerdane85-hash'
+--[[
+Copyright © 2026, mullerdane85-hash
+All rights reserved. BSD-3-Clause. See LICENSE.
+
+GSUI — graphical GearSwap / Inventory companion.
+
+Two modes share the same window:
+
+    GearSwap   Visual equipset builder: drag inventory items onto the
+               13-slot equip pane, compute stat totals, save back to
+               your GearSwap file. GearTree-style sets sub-panel for
+               browsing and overlaying named sets.
+
+    Organizer  Bag-by-bag view of every storage container (inventory,
+               wardrobes 1-8, satchel, sack, case, mog safe, safe2,
+               storage, locker). Move items between containers with
+               drag-and-drop or multi-select + bag-row click. Surfaces
+               conflicts (duplicate paired-slot equipment in the same
+               bag) and scattered items (same id in multiple bags).
+               Works at Nomad/Porter Moogles, not just inside the
+               mog house.
+
+Slash entry: //gsui. See README.md for keybinds, settings, and the
+GearTree-style sets integration.
+]]
+
+_addon.name     = 'GSUI'
+_addon.version  = '2.0.0'
+_addon.author   = 'mullerdane85-hash'
 _addon.commands = { 'gsui' }
 
 require('luau')
