@@ -370,6 +370,22 @@ local function refresh_data()
     apply_filter()
 end
 
+-- FFXI's /equip command uses ear1/ear2/ring1/ring2; GSUI / GearSwap use
+-- left_ear/right_ear/left_ring/right_ring internally. Map one to the
+-- other when generating the chat command. Other slot names pass
+-- through unchanged.
+local _SLOT_TO_CHAT = {
+    left_ear   = 'ear1',
+    right_ear  = 'ear2',
+    left_ring  = 'ring1',
+    right_ring = 'ring2',
+}
+
+local function _send_equip(slot, item_name)
+    local chat_slot = _SLOT_TO_CHAT[slot] or slot
+    windower.send_command('input /equip ' .. chat_slot .. ' "' .. item_name .. '"')
+end
+
 local function handle_kb_action(action)
     if action.type == 'equip' then
         -- Slot protection: check if item can go in target slot
@@ -384,7 +400,12 @@ local function handle_kb_action(action)
         ui.set_status(action.item.name .. ' -> ' .. action.slot)
         ui.update_tooltip(action.item)
         update_custom_stats()
-        windower.add_to_chat(207, 'GSUI: ' .. action.item.name .. ' assigned to ' .. action.slot)
+        -- Instant equip: also send the actual /equip chat command so
+        -- the item lands on the character, not just in GSUI's in-memory
+        -- custom set display. Previous behavior was display-only, which
+        -- looked like "I clicked the item and nothing happened" in game.
+        _send_equip(action.slot, action.item.name)
+        windower.add_to_chat(207, 'GSUI: equipped ' .. action.item.name .. ' -> ' .. action.slot)
     elseif action.type == 'bag' then
         local dest = action.bag_name
         local item = action.item
@@ -690,14 +711,35 @@ local function handle_click(mx, my)
         windower.add_to_chat(207, 'GSUI: All equipment slots cleared.')
         return true
     elseif hit.type == 'reequip_btn' then
-        custom_set_active = false
-        set_gen.clear()
-        local eq = scanner.scan_equipment()
-        ui.update_equipment(eq)
-        set_gen.populate_from_equipment(eq)
-        update_stats(eq)
-        ui.set_status('Reset to equipped gear.')
-        windower.add_to_chat(207, 'GSUI: Reset to currently equipped gear.')
+        -- Dual purpose:
+        --   * If a custom set is pending (the user has been clicking
+        --     items into the equip pane), commit the whole pending set
+        --     to the character via /equip chat commands. This is the
+        --     "Equip Now" / batch-apply path users asked for.
+        --   * Otherwise, do the original behavior: reset GSUI's display
+        --     to whatever's currently equipped on the character. Useful
+        --     when the user wants to start a new build from scratch.
+        if custom_set_active and set_gen.has_items() then
+            local slots = set_gen.get_all_slots()
+            local count = 0
+            for slot_name, item in pairs(slots) do
+                if item and item.name then
+                    _send_equip(slot_name, item.name)
+                    count = count + 1
+                end
+            end
+            ui.set_status('Applied custom set (' .. count .. ' slots).')
+            windower.add_to_chat(207, 'GSUI: equipped ' .. count .. ' slot(s) from custom set.')
+        else
+            custom_set_active = false
+            set_gen.clear()
+            local eq = scanner.scan_equipment()
+            ui.update_equipment(eq)
+            set_gen.populate_from_equipment(eq)
+            update_stats(eq)
+            ui.set_status('Reset to equipped gear.')
+            windower.add_to_chat(207, 'GSUI: Reset to currently equipped gear.')
+        end
         return true
     elseif hit.type == 'save_btn' then
         if set_gen.has_items() then
@@ -1481,6 +1523,25 @@ windower.register_event('addon command', function(...)
         else
             windower.add_to_chat(207, 'GSUI: Set "' .. name .. '" not found.')
         end
+    elseif cmd == 'equip' then
+        -- Bulk "Equip Now" -- flush every slot in GSUI's current custom
+        -- set to the character via /equip chat commands. Same target as
+        -- the "Equip Now" button below; this is the slash-command form
+        -- so a user can bind a key to it (e.g. //bind ^e gsui equip).
+        local slots = set_gen.get_all_slots()
+        local count = 0
+        for slot_name, item in pairs(slots) do
+            if item and item.name then
+                _send_equip(slot_name, item.name)
+                count = count + 1
+            end
+        end
+        if count > 0 then
+            windower.add_to_chat(207, 'GSUI: equipped ' .. count .. ' slot(s) from custom set.')
+            ui.set_status('Equipped ' .. count .. ' slots.')
+        else
+            windower.add_to_chat(207, 'GSUI: nothing in the custom set to equip. Click items first or //gsui load <name>.')
+        end
     elseif cmd == 'delete' then
         local name = args[1]
         if not name or name == '' then
@@ -1516,6 +1577,7 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui pos <x> <y> - Set window position')
         windower.add_to_chat(207, '  /gsui gen - Generate set to clipboard')
         windower.add_to_chat(207, '  /gsui clear - Reset to currently equipped')
+        windower.add_to_chat(207, '  /gsui equip - Apply current custom set to character (Equip Now)')
         windower.add_to_chat(207, '  /gsui save <name> - Save current set')
         windower.add_to_chat(207, '  /gsui load <name> - Load a saved set')
         windower.add_to_chat(207, '  /gsui delete <name> - Delete a saved set')
