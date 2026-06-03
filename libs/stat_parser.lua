@@ -448,6 +448,82 @@ function stat_parser.format_total_summary(totals)
             v.hp or 0, v.max_hp or 0, v.mp or 0, v.max_mp or 0))
     end
 
+    -- =========================================================================
+    -- Combat Secondaries / Defense / Casting blocks.
+    --
+    -- The Total view used to stop at the Base + Gear block, which left
+    -- out the stats that matter most for a quick "is this player set
+    -- up for offense or defense" audit (Haste / DA / TA / DW / DT etc.).
+    -- These follow-on sections pull those values straight from the
+    -- already-computed `totals` table so they cover both your own
+    -- equipped gear AND a /check'd player's gear without further
+    -- packet work.
+    --
+    -- Each line only renders if at least one of its stats is > 0, so
+    -- jobs that genuinely have nothing in a category (e.g. a healer
+    -- with no melee multi-attack) don't get padded with blank rows.
+    --
+    -- DT / PDT / MDT are stored as positive percentages internally
+    -- (stat_parser flags them with `negative = true` so the gear view
+    -- prepends the minus sign). We render them the same way here.
+    -- =========================================================================
+    local has_sec =
+        (totals.haste or 0) > 0 or (totals.da or 0) > 0 or
+        (totals.ta or 0) > 0    or (totals.stp or 0) > 0 or
+        (totals.dw or 0) > 0    or (totals.crit or 0) > 0 or
+        (totals.subtle or 0) > 0
+    if has_sec then
+        table.insert(lines, '')
+        table.insert(lines, '-- Combat Secondaries --')
+        local row1 = {}
+        if (totals.haste or 0) > 0 then row1[#row1+1] = string.format('Haste %d%%', totals.haste) end
+        if (totals.dw    or 0) > 0 then row1[#row1+1] = string.format('DW %d%%',    totals.dw)    end
+        if (totals.stp   or 0) > 0 then row1[#row1+1] = string.format('STP %d',     totals.stp)   end
+        if #row1 > 0 then table.insert(lines, table.concat(row1, '  ')) end
+        local row2 = {}
+        if (totals.da   or 0) > 0 then row2[#row2+1] = string.format('DA %d%%',  totals.da)   end
+        if (totals.ta   or 0) > 0 then row2[#row2+1] = string.format('TA %d%%',  totals.ta)   end
+        if (totals.crit or 0) > 0 then row2[#row2+1] = string.format('Crit %d%%', totals.crit) end
+        if #row2 > 0 then table.insert(lines, table.concat(row2, '  ')) end
+        if (totals.subtle or 0) > 0 then
+            table.insert(lines, string.format('SB %d', totals.subtle))
+        end
+    end
+
+    local has_def =
+        (totals.pdt or 0) > 0 or (totals.mdt or 0) > 0 or
+        (totals.dt or 0) > 0  or (totals.meva or 0) > 0
+    if has_def then
+        table.insert(lines, '')
+        table.insert(lines, '-- Defense --')
+        local row = {}
+        -- pdt / mdt / dt stack: a piece with universal DT contributes
+        -- to both PDT and MDT functionally, but the stat_parser tracks
+        -- them under separate keys based on the augment text. We show
+        -- all three so the user can see each contribution channel.
+        if (totals.pdt  or 0) > 0 then row[#row+1] = string.format('PDT -%d%%',  totals.pdt)  end
+        if (totals.mdt  or 0) > 0 then row[#row+1] = string.format('MDT -%d%%',  totals.mdt)  end
+        if (totals.dt   or 0) > 0 then row[#row+1] = string.format('DT  -%d%%',  totals.dt)   end
+        if #row > 0 then table.insert(lines, table.concat(row, '  ')) end
+        if (totals.meva or 0) > 0 then
+            table.insert(lines, string.format('MEva %d', totals.meva))
+        end
+    end
+
+    local has_cast =
+        (totals.fc or 0) > 0 or (totals.conserve_mp or 0) > 0 or
+        (totals.qm or 0) > 0 or (totals.sird or 0) > 0
+    if has_cast then
+        table.insert(lines, '')
+        table.insert(lines, '-- Casting --')
+        local row = {}
+        if (totals.fc          or 0) > 0 then row[#row+1] = string.format('FC %d%%',  totals.fc) end
+        if (totals.qm          or 0) > 0 then row[#row+1] = string.format('QM %d%%',  totals.qm) end
+        if (totals.conserve_mp or 0) > 0 then row[#row+1] = string.format('CMP %d',   totals.conserve_mp) end
+        if (totals.sird        or 0) > 0 then row[#row+1] = string.format('SIRD %d%%',totals.sird) end
+        if #row > 0 then table.insert(lines, table.concat(row, '  ')) end
+    end
+
     return table.concat(lines, '\n')
 end
 
