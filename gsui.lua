@@ -42,6 +42,10 @@ local set_gen = require('libs/set_generator')
 local icon_handler = require('libs/icon_handler')
 local bag_org = require('libs/bag_organizer')
 local stat_parser = require('libs/stat_parser')
+-- Augment decoder for /check examination packets. Used by the 0x0C9
+-- listener below to turn a player's ExtData blob into a list of
+-- augment description strings that stat_parser can scan.
+local extdata = require('extdata')
 
 -- Sets controller (GearTree-style integration). Lives in its own
 -- sub-window so it doesn't tangle with the main GSUI window's tab
@@ -265,7 +269,20 @@ show_org_scattered = function()
     ui.update_inventory(display_items)
 end
 
+-- Stats panel display mode:
+--   'self'  -> show YOUR currently-equipped gear totals (default)
+--   'check' -> show the LAST /check-examined player's gear totals
+-- Toggle to 'self' via //gsui mystats. Toggles to 'check' automatically
+-- when an incoming 0x0C9 player-examination packet arrives.
+local _stats_mode = 'self'
+local _last_checked = nil   -- { name, mjob, sjob, eq } from the last /check
+
 local function update_stats(eq)
+    -- If the user is viewing a /checked player's stats, don't let a
+    -- self-equipment refresh overwrite the panel. The check display
+    -- survives until //gsui mystats or another /check.
+    if _stats_mode == 'check' and _last_checked then return end
+
     local totals = stat_parser.calc_totals(eq)
     local view = ui.get_stat_view and ui.get_stat_view() or 'gear'
     local summary = (view == 'total') and stat_parser.format_total_summary(totals)
@@ -1098,6 +1115,72 @@ windower.register_event('incoming chunk', function(id, original, modified, injec
         end
         pending_refresh = true
         refresh_timer = os.clock()
+    elseif id == 0x0C9 then
+        -- /check examination of another player. Same packet checkparam
+        -- uses. Type 1 = player examination (Type 3 = item linkshell
+        -- examine etc.). Pulls every equipped slot's item id + extdata
+        -- out of the packet, builds the structured shape stat_parser
+        -- already understands, and displays totals in the existing
+        -- stats panel with the target's name + job as the header.
+        local ok, p = pcall(packets.parse, 'incoming', original)
+        if ok and p and p['Type'] == 1 then
+            local target = windower.ffxi.get_mob_by_index(p['Target Index'] or 0)
+            local target_name = (target and target.name) or 'Unknown'
+            local mjob_def = res.jobs[p['Main Job'] or 0]
+            local sjob_def = res.jobs[p['Sub Job'] or 0]
+            local mjob = (mjob_def and mjob_def.english_short) or '???'
+            local sjob = (sjob_def and sjob_def.english_short) or '???'
+
+            -- Build equipment_data shape: { slot_name = { item = { description, augments } } }.
+            -- res.slots index matches the packet's per-slot order; the
+            -- english name gets lowercased + spaces -> underscores so
+            -- it matches the slot names stat_parser expects
+            -- (left_ear / right_ring / etc.).
+            local eq = {}
+            local count = p['Count'] or 0
+            for i = 1, count do
+                local item_id = p['Item ' .. i]
+                local ext     = p['ExtData ' .. i]
+                if item_id and item_id > 0 then
+                    local item_def = res.items[item_id]
+                    local slot_def = res.slots[i - 1]
+                    if item_def and slot_def then
+                        local slot_name = slot_def.english:lower():gsub(' ', '_')
+                        local augments
+                        if ext then
+                            local ok_ext, decoded = pcall(extdata.decode,
+                                { id = item_id, extdata = ext })
+                            if ok_ext and decoded and decoded.augments then
+                                augments = decoded.augments
+                            end
+                        end
+                        eq[slot_name] = {
+                            item = {
+                                description = item_def.description,
+                                augments    = augments,
+                            }
+                        }
+                    end
+                end
+            end
+
+            _last_checked = { name = target_name, mjob = mjob, sjob = sjob, eq = eq }
+            _stats_mode = 'check'
+
+            -- Render the check totals in the stats panel. Self-refresh
+            -- calls to update_stats are gated on _stats_mode so they
+            -- can't overwrite this until the user runs //gsui mystats.
+            local totals = stat_parser.calc_totals(eq)
+            local view = ui.get_stat_view and ui.get_stat_view() or 'gear'
+            local summary = (view == 'total')
+                              and stat_parser.format_total_summary(totals)
+                              or  stat_parser.format_summary(totals)
+            ui.update_stat_text(
+                '-- ' .. target_name .. ' (' .. mjob .. '/' .. sjob .. ') --\n'
+                .. summary)
+            windower.add_to_chat(207, 'GSUI: showing stats for ' .. target_name
+                .. ' (' .. mjob .. '/' .. sjob .. '). //gsui mystats to switch back.')
+        end
     elseif id == 0x05F then -- Music Change: BGM Type 6 = mog house
         local bgm_type = original:byte(5) + original:byte(6) * 256
         -- Only SET mog house on type 6; never UNSET from music packets
@@ -1577,6 +1660,18 @@ windower.register_event('addon command', function(...)
                 windower.add_to_chat(207, '  ' .. name)
             end
         end
+    elseif cmd == 'mystats' or cmd == 'selfstats' then
+        -- Switch the stats panel back to your own equipped gear after
+        -- a /check examination redirected it to another player.
+        _stats_mode = 'self'
+        _last_checked = nil
+        local eq = scanner.scan_equipment()
+        update_stats(eq)
+        if _last_checked then
+            windower.add_to_chat(207, 'GSUI: stat panel back to your own gear.')
+        else
+            windower.add_to_chat(207, 'GSUI: stat panel showing your own gear.')
+        end
     elseif cmd == 'help' then
         windower.add_to_chat(207, 'GSUI Commands:')
         windower.add_to_chat(207, '  /gsui - Toggle window')
@@ -1586,6 +1681,7 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui gen - Generate set to clipboard')
         windower.add_to_chat(207, '  /gsui clear - Reset to currently equipped')
         windower.add_to_chat(207, '  /gsui equip - Apply current custom set to character (Equip Now)')
+        windower.add_to_chat(207, '  /gsui mystats - Stats panel: switch back to your own gear after a /check')
         windower.add_to_chat(207, '  /gsui save <name> - Save current set')
         windower.add_to_chat(207, '  /gsui load <name> - Load a saved set')
         windower.add_to_chat(207, '  /gsui delete <name> - Delete a saved set')
