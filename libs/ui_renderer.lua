@@ -2096,6 +2096,12 @@ function ui.show_org_panel()
 end
 
 function ui.refresh_org_bags()
+    -- Don't un-hide entries while the UI is hidden. The prerender path
+    -- in gsui.lua already gates refresh_organizer() on visibility, but
+    -- this is a belt-and-suspenders check in case any other path
+    -- (bag-row click handler, scroll, etc.) calls this directly while
+    -- hidden.
+    if not state.visible then return end
     local count = #ORG_BAG_LIST
     for i = 1, ORG_VISIBLE do
         local entry = elements.org_bag_entries[i]

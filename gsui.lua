@@ -1320,9 +1320,17 @@ windower.register_event('prerender', function()
         local now = os.clock()
         if (now - refresh_timer) > 0.3 or now > refresh_deadline then
             pending_refresh = false
-            refresh_data()
-            if ui.get_mode and ui.get_mode() == 'organizer' then
-                refresh_organizer()
+            -- Only refresh when the UI is actually visible. Without this
+            -- guard, refresh_organizer() -> refresh_org_bags() unconditionally
+            -- calls show_element() on every bag entry, which un-hides the
+            -- bag list after the user toggled GSUI off. User report: the
+            -- "All Bags" list stayed on screen after the toggle because
+            -- every inventory packet (buy / move / craft) was reviving it.
+            if ui.is_visible and ui.is_visible() then
+                refresh_data()
+                if ui.get_mode and ui.get_mode() == 'organizer' then
+                    refresh_organizer()
+                end
             end
         end
     end
