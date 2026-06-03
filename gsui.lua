@@ -1396,6 +1396,14 @@ end)
 -- in-game text overlay. settings.visible is left untouched -- the
 -- panel reappears as soon as the user closes their text input.
 local _was_input_open = false
+-- Second signal for the auto-hide: track the last keyboard event that
+-- arrived with blocked=true. The macro editor doesn't set chat_open
+-- but routes keys through FFXI's intercept (blocked flag), so any
+-- recent blocked event = text entry active.
+local _last_blocked_at = 0
+windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+    if blocked then _last_blocked_at = os.clock() end
+end)
 
 windower.register_event('prerender', function()
     if not initialized then return end
@@ -1421,9 +1429,12 @@ windower.register_event('prerender', function()
         bag_org.process_queue()
     end
 
-    -- Hide while chat / macro editor is open; restore on close.
+    -- Hide while chat OR macro editor OR any FFXI text-entry surface is
+    -- open; restore on close. See _last_blocked_at definition above
+    -- for the why-two-signals rationale.
     local info = windower.ffxi.get_info()
-    local input_open = info and info.chat_open == true
+    local input_open = (info and info.chat_open == true)
+                       or (os.clock() - _last_blocked_at) < 1.5
     if input_open and not _was_input_open then
         ui.hide()
         _was_input_open = true
