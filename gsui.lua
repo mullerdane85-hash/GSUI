@@ -1103,16 +1103,24 @@ deactivate_kb_binds = function()
     windower.send_command('unbind backspace')
 end
 
--- Toggle hotkey for the GSUI main window. Default DIK is 48 (B) -- was
--- temporarily N during the GSUI2 development fork so the two addons
--- could coexist; now that v2 is GSUI it reclaims B. GearTree-style sets
--- editing lives inside the main GearSwap tab -- no separate window or
--- hotkey. User can rebind via //gsui togglekey <key> (any DIK_NAMES
--- entry, or "off" to disable). The DIK is read from settings each call
--- so /gsui togglekey applies live with no reload.
+-- Toggle hotkey for the GSUI main window. Default DIK is 48 (B). User
+-- can rebind via //gsui changekey <key> (named, by raw DIK with #N, or
+-- 'capture' to press a physical key). The DIK is read from settings on
+-- every press so a rebind takes effect live -- no //lua reload.
+local _capture_pending = false   -- set true by //gsui changekey capture
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if blocked then return false end
     if not pressed then return false end
+    -- Capture mode: next physical key press becomes the new binding.
+    if _capture_pending then
+        _capture_pending = false
+        settings.toggle_key_dik = dik
+        config.save(settings)
+        local nm = DIK_DISPLAY[dik] or ('DIK_'..tostring(dik))
+        windower.add_to_chat(207, 'GSUI: toggle key set to ' .. nm
+            .. ' (DIK ' .. tostring(dik) .. ').')
+        return true
+    end
     local bound = settings.toggle_key_dik or 0
     if bound == 0 then return false end   -- hotkey disabled
     local info = windower.ffxi.get_info()
@@ -1636,29 +1644,55 @@ windower.register_event('addon command', function(...)
         sync_kb_binds()
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
     elseif cmd == 'changekey' or cmd == 'togglekey' or cmd == 'hotkey' then
-        -- Rebind the GSUI toggle hotkey. //gsui changekey <key>
-        --   <key> = letter / digit / function key / "off" to disable
-        -- The keyboard listener above reads settings.toggle_key_dik each
-        -- press, so this takes effect immediately -- no reload required.
+        -- Rebind the GSUI toggle hotkey. Three input modes:
+        --   //gsui changekey               -- echo current binding
+        --   //gsui changekey <name>        -- named key from DIK_NAMES
+        --                                     (a-z, 0-9, F1-F12, "off", ...)
+        --   //gsui changekey #<dik>        -- raw DIK scancode 1..255
+        --   //gsui changekey capture       -- next physical key sets it
+        -- Capture mode handles ANY key on the user's keyboard, including
+        -- multimedia / OEM / region-specific keys we don't know names for.
         if #args == 0 then
             local cur = settings.toggle_key_dik or 0
             local name = DIK_DISPLAY[cur] or ('DIK_'..tostring(cur))
             windower.add_to_chat(207, 'GSUI: toggle key is ' .. name
-                .. '  (//gsui changekey <key>  |  //gsui changekey off)')
+                .. ' (DIK ' .. tostring(cur) .. ').')
+            windower.add_to_chat(207, '  //gsui changekey <key>     - by name (a-z, F1-F12, off, ...)')
+            windower.add_to_chat(207, '  //gsui changekey #<dik>    - by raw scancode (1-255)')
+            windower.add_to_chat(207, '  //gsui changekey capture   - press the physical key to bind')
         else
-            local key = tostring(args[1]):lower()
-            local dik = DIK_NAMES[key]
+            local raw = tostring(args[1])
+            local key = raw:lower()
+            local dik = nil
+            if key == 'capture' or key == 'press' then
+                _capture_pending = true
+                windower.add_to_chat(207, 'GSUI: press the key you want to use as the toggle. (Press ESC to cancel.)')
+                -- Snag ESC as a cancel sentinel: if it's pressed, the
+                -- listener stores DIK 1 which IS the escape key. User
+                -- can immediately rebind back if they meant something else.
+                return
+            elseif raw:sub(1,1) == '#' then
+                dik = tonumber(raw:sub(2))
+                if not dik or dik < 0 or dik > 255 then
+                    windower.add_to_chat(167, 'GSUI: raw DIK must be a number 0-255.')
+                    return
+                end
+            else
+                dik = DIK_NAMES[key]
+            end
             if dik == nil then
-                windower.add_to_chat(167, 'GSUI: unknown key "' .. tostring(args[1])
-                    .. '". Try a letter (a-z), digit (0-9), F1-F12, or "off".')
+                windower.add_to_chat(167, 'GSUI: unknown key "' .. raw
+                    .. '". Try a letter (a-z), digit (0-9), F1-F12, "off",')
+                windower.add_to_chat(167, '   "#<dik>" with the raw scancode, or "capture" to press a key.')
             else
                 settings.toggle_key_dik = dik
                 config.save(settings)
                 if dik == 0 then
                     windower.add_to_chat(207, 'GSUI: toggle key disabled. Use /gsui to toggle.')
                 else
-                    windower.add_to_chat(207, 'GSUI: toggle key set to '
-                        .. (DIK_DISPLAY[dik] or ('DIK_'..tostring(dik))) .. '.')
+                    local nm = DIK_DISPLAY[dik] or ('DIK_'..tostring(dik))
+                    windower.add_to_chat(207, 'GSUI: toggle key set to ' .. nm
+                        .. ' (DIK ' .. tostring(dik) .. ').')
                 end
             end
         end
@@ -1772,7 +1806,7 @@ windower.register_event('addon command', function(...)
         windower.add_to_chat(207, '  /gsui sets - List saved sets')
         windower.add_to_chat(207, '  /gsui org - Toggle organizer mode')
         windower.add_to_chat(207, '  /gsui kb - Toggle keyboard/drag mode')
-        windower.add_to_chat(207, '  /gsui changekey <key> - Rebind toggle hotkey (a-z, 0-9, F1-F12, or "off")')
+        windower.add_to_chat(207, '  /gsui changekey <key> - Rebind toggle hotkey (name, #<dik>, capture, or "off")')
         windower.add_to_chat(207, '  /gsui deselect - Clear multi-select')
         windower.add_to_chat(207, '  /gsui gamepath <path> - Set FFXI install path')
         windower.add_to_chat(207, '  /gsui debug - Dump icon-extraction diagnostic (use if inventory is blank)')
