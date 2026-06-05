@@ -1566,18 +1566,50 @@ windower.register_event('addon command', function(...)
         end
         return
     elseif cmd == 'debugenhance' or cmd == 'debugaug' then
-        -- Diagnostic: tests the base_stats module end-to-end on a known
-        -- "Enhances X effect" item so we can tell why a tooltip annotation
-        -- isn't appearing. Usage: //gsui debugenhance [item name]
+        -- Diagnostic for the base_stats JSON loader. Walks each step of
+        -- _load() manually so we can see exactly where it's silently failing.
         local target = (args[1] and table.concat(args, ' ')) or 'Prolix Ring'
-        local ok_bs, bs = pcall(require, 'libs/base_stats')
-        windower.add_to_chat(207, 'GSUI debug: require(libs/base_stats) = '..tostring(ok_bs))
-        if not ok_bs then
-            windower.add_to_chat(167, '   error: '..tostring(bs))
+
+        -- Step 1: addon path
+        local ap = windower.addon_path or '(nil)'
+        windower.add_to_chat(207, 'GSUI debug: windower.addon_path = '..tostring(ap))
+
+        -- Step 2: can we open the JSON file directly?
+        local path = ap .. 'data/item_stats.json'
+        local f, err = io.open(path, 'r')
+        if not f then
+            windower.add_to_chat(167, 'GSUI debug: io.open FAILED for '..path..'  err='..tostring(err))
+            -- Try a Windows-style backslash path too
+            path = ap .. 'data\\item_stats.json'
+            f, err = io.open(path, 'r')
+            if not f then
+                windower.add_to_chat(167, 'GSUI debug: also failed with backslash: '..path)
+                return
+            end
+            windower.add_to_chat(207, 'GSUI debug: but backslash path WORKED: '..path)
+        else
+            windower.add_to_chat(207, 'GSUI debug: io.open OK for '..path)
+        end
+        local bytes = f:seek('end')
+        windower.add_to_chat(207, 'GSUI debug: file size = '..tostring(bytes)..' bytes')
+        f:close()
+
+        -- Step 3: JSON module loadable?
+        local ok_json, jmod = pcall(require, 'json')
+        if not ok_json then
+            ok_json, jmod = pcall(require, 'libs/json')
+        end
+        windower.add_to_chat(207, 'GSUI debug: json module loaded = '..tostring(ok_json))
+        if not ok_json then
+            windower.add_to_chat(167, '   error: '..tostring(jmod))
             return
         end
-        windower.add_to_chat(207, 'GSUI debug: bs.lookup exists = '..tostring(bs.lookup ~= nil))
-        windower.add_to_chat(207, 'GSUI debug: bs.raw_lookup exists = '..tostring(bs.raw_lookup ~= nil))
+        windower.add_to_chat(207, 'GSUI debug: json.decode is function = '..tostring(type(jmod.decode) == 'function'))
+
+        -- Step 4: base_stats module + lookup
+        local ok_bs, bs = pcall(require, 'libs/base_stats')
+        windower.add_to_chat(207, 'GSUI debug: require(libs/base_stats) = '..tostring(ok_bs))
+        if not ok_bs then return end
         windower.add_to_chat(207, 'GSUI debug: bs.is_loaded = '..tostring(bs.is_loaded and bs.is_loaded()))
         if bs.raw_lookup then
             local raw = bs.raw_lookup(target)
@@ -1586,11 +1618,9 @@ windower.register_event('addon command', function(...)
                 for k, v in pairs(raw) do parts[#parts+1] = k..'='..v end
                 windower.add_to_chat(207, 'GSUI debug: raw_lookup('..target..') = { '..table.concat(parts, ', ')..' }')
             else
-                windower.add_to_chat(167, 'GSUI debug: raw_lookup('..target..') = nil  (item not in JSON)')
+                windower.add_to_chat(167, 'GSUI debug: raw_lookup('..target..') = nil')
             end
-        else
-            windower.add_to_chat(167, 'GSUI debug: raw_lookup missing -- cached old base_stats module. '
-                ..'Run //lua reload gsui  (or restart Windower) to refresh.')
+            windower.add_to_chat(207, 'GSUI debug: bs.is_loaded (post-call) = '..tostring(bs.is_loaded()))
         end
         return
     elseif cmd == 'sets-reload' or cmd == 'sets' then
