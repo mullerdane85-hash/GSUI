@@ -781,6 +781,27 @@ local function handle_click(mx, my)
     elseif hit.type == 'filter_menu_item' then
         ui.set_active_filter(hit.index)
         return true
+    elseif hit.type == 'remove_btn' then
+        -- Single-slot Remove. Uses whatever slot the user has focused
+        -- via clicking it in the equipment grid (state.slot_filter).
+        -- If no slot is focused, prompt them to pick one first.
+        local slot = ui.get_slot_filter and ui.get_slot_filter() or nil
+        if not slot then
+            ui.set_status('Click a slot first, then Remove.')
+            windower.add_to_chat(167, 'GSUI: Remove -- no slot focused. Click a slot in the equipment grid first.')
+            return true
+        end
+        custom_set_active = true
+        set_gen.remove_slot(slot)
+        if ui.clear_equip_slot then
+            ui.clear_equip_slot(slot)
+        elseif ui.set_equip_slot_item then
+            ui.set_equip_slot_item(slot, nil)
+        end
+        update_custom_stats()
+        ui.set_status(slot .. ' cleared.')
+        windower.add_to_chat(207, 'GSUI: ' .. slot .. ' slot cleared.')
+        return true
     elseif hit.type == 'remove_all_btn' then
         custom_set_active = true
         set_gen.clear()

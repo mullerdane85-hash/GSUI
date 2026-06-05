@@ -87,6 +87,7 @@ local elements = {
     filter_dropdown = nil, filter_menu = nil, filter_menu_items = {},
     tooltip_bg = nil, tooltip_text = nil,
     generate_btn_bg = nil, generate_btn_text = nil,
+    remove_btn_bg = nil, remove_btn_text = nil,
     remove_all_btn_bg = nil, remove_all_btn_text = nil,
     reequip_btn_bg = nil, reequip_btn_text = nil,
     save_btn_bg = nil, save_btn_text = nil,
@@ -174,9 +175,12 @@ local state = {
     kb_filter_index = 1,
     -- Slot filter
     slot_filter = nil,
-    -- Save/load
+    -- Save/load + the Remove/Remove-All split row (rects tracked here so
+    -- hit_test can distinguish the two halves now that they share a row).
     save_btn_rect = {},
     load_btn_rect = {},
+    remove_btn_rect = {},
+    remove_all_btn_rect = {},
     saved_sets = {},
     -- GearTree integration — sets list shown in the left panel under the
     -- Save/Load buttons. Populated by gsui.lua via ui.set_sets_data().
@@ -368,12 +372,23 @@ function ui.build()
     elements.status_text = make_text('', btn_x + BTN_W + 8, btn_y + 5, 10, 180, 255, 180)
     elements.status_text:show()
 
-    -- Remove All / Re-equip buttons (stacked below Generate)
+    -- Remove (single slot) | Remove All — split row, same height as the
+    -- prior solo Remove All. The Remove half drops just the slot the user
+    -- has focused (whatever ui.get_slot_filter() returns); Remove All
+    -- still wipes the whole equipment grid.
     local btn2_y = btn_y + BTN_H + SLOT_PAD
-    elements.remove_all_btn_bg = make_bg(btn_x, btn2_y, BTN_W, BTN_H, 220, 130, 35, 35)
+    local half_btn_2 = math.floor((BTN_W - SLOT_PAD) / 2)
+    local remove_all_x = btn_x + half_btn_2 + SLOT_PAD
+    elements.remove_btn_bg = make_bg(btn_x, btn2_y, half_btn_2, BTN_H, 220, 130, 70, 35)
+    elements.remove_btn_bg:show()
+    elements.remove_btn_text = make_text('Remove', btn_x + math.floor(half_btn_2 / 2) - 19, btn2_y + 5, 11, 255, 255, 255, true)
+    elements.remove_btn_text:show()
+    elements.remove_all_btn_bg = make_bg(remove_all_x, btn2_y, half_btn_2, BTN_H, 220, 160, 35, 35)
     elements.remove_all_btn_bg:show()
-    elements.remove_all_btn_text = make_text('Remove All', btn_x + 30, btn2_y + 5, 11, 255, 255, 255, true)
+    elements.remove_all_btn_text = make_text('Remove All', remove_all_x + math.floor(half_btn_2 / 2) - 26, btn2_y + 5, 11, 255, 255, 255, true)
     elements.remove_all_btn_text:show()
+    state.remove_btn_rect     = { x = btn_x,        y = btn2_y, w = half_btn_2, h = BTN_H }
+    state.remove_all_btn_rect = { x = remove_all_x, y = btn2_y, w = half_btn_2, h = BTN_H }
 
     local btn3_y = btn2_y + BTN_H + SLOT_PAD
     elements.reequip_btn_bg = make_bg(btn_x, btn3_y, BTN_W, BTN_H, 220, 35, 80, 130)
@@ -634,6 +649,8 @@ function ui.build()
         hide_element(elements.equip_bg)
         hide_element(elements.generate_btn_bg)
         hide_element(elements.generate_btn_text)
+        hide_element(elements.remove_btn_bg)
+        hide_element(elements.remove_btn_text)
         hide_element(elements.remove_all_btn_bg)
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
@@ -1488,11 +1505,17 @@ function ui.hit_test(mx, my)
         if mx >= bx and mx <= bx + BTN_W and my >= by and my <= by + BTN_H then
             return { type = 'generate_btn' }
         end
-        -- Remove All / Re-equip buttons (stacked)
-        local btn2_y = by + BTN_H + SLOT_PAD
-        if mx >= bx and mx <= bx + BTN_W and my >= btn2_y and my <= btn2_y + BTN_H then
+        -- Remove (single) | Remove All split row.
+        local rr = state.remove_btn_rect
+        if rr and rr.x and mx >= rr.x and mx <= rr.x + rr.w and my >= rr.y and my <= rr.y + rr.h then
+            return { type = 'remove_btn' }
+        end
+        local rar = state.remove_all_btn_rect
+        if rar and rar.x and mx >= rar.x and mx <= rar.x + rar.w and my >= rar.y and my <= rar.y + rar.h then
             return { type = 'remove_all_btn' }
         end
+        -- Re-equip stays full-width below.
+        local btn2_y = by + BTN_H + SLOT_PAD
         local btn3_y = btn2_y + BTN_H + SLOT_PAD
         if mx >= bx and mx <= bx + BTN_W and my >= btn3_y and my <= btn3_y + BTN_H then
             return { type = 'reequip_btn' }
@@ -1669,6 +1692,8 @@ function ui.show()
         show_element(elements.equip_bg)
         show_element(elements.generate_btn_bg)
         show_element(elements.generate_btn_text)
+        show_element(elements.remove_btn_bg)
+        show_element(elements.remove_btn_text)
         show_element(elements.remove_all_btn_bg)
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
@@ -1866,6 +1891,8 @@ function ui.destroy()
     destroy_element(elements.status_text)
     destroy_element(elements.generate_btn_bg)
     destroy_element(elements.generate_btn_text)
+    destroy_element(elements.remove_btn_bg)
+    destroy_element(elements.remove_btn_text)
     destroy_element(elements.remove_all_btn_bg)
     destroy_element(elements.remove_all_btn_text)
     destroy_element(elements.reequip_btn_bg)
@@ -1981,6 +2008,8 @@ function ui.set_mode(mode)
         show_element(elements.equip_bg)
         show_element(elements.generate_btn_bg)
         show_element(elements.generate_btn_text)
+        show_element(elements.remove_btn_bg)
+        show_element(elements.remove_btn_text)
         show_element(elements.remove_all_btn_bg)
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
@@ -2021,6 +2050,8 @@ function ui.set_mode(mode)
         hide_element(elements.equip_bg)
         hide_element(elements.generate_btn_bg)
         hide_element(elements.generate_btn_text)
+        hide_element(elements.remove_btn_bg)
+        hide_element(elements.remove_btn_text)
         hide_element(elements.remove_all_btn_bg)
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
