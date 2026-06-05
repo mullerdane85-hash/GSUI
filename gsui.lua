@@ -440,9 +440,40 @@ local _SLOT_TO_CHAT = {
     right_ring = 'ring2',
 }
 
-local function _send_equip(slot, item_name)
+-- Quote a single Lua-string literal so it survives the //gs equip command line.
+local function _gs_quote_single(s)
+    return "'" .. tostring(s):gsub("\\", "\\\\"):gsub("'", "\\'") .. "'"
+end
+
+-- Send an /equip-style command for a slot. Two paths:
+--   1. Bare name (item has no augments) -> input /equip <slot> "<name>"
+--      Works for unique items where there's no augment ambiguity.
+--   2. Augmented name -> input //gs equip { <slot>={name="...",augments={...}} }
+--      GearSwap matches the augment block against the inventory and equips
+--      the exact augmented copy, not whichever instance sorts first. Without
+--      this, `/equip back "Alaunus's Cape"` could pick the FC-aug cape when
+--      the engaged set wants the TP-aug cape.
+local function _send_equip(slot, item)
+    -- Accept either a bare string (legacy callers) or the full
+    -- {name=..., augments={...}} table that set_gen stores.
+    local name, augs
+    if type(item) == 'table' then
+        name = item.name
+        augs = item.augments
+    else
+        name = item
+    end
+    if not name then return end
     local chat_slot = _SLOT_TO_CHAT[slot] or slot
-    windower.send_command('input /equip ' .. chat_slot .. ' "' .. item_name .. '"')
+    if augs and #augs > 0 then
+        local aug_parts = {}
+        for _, a in ipairs(augs) do aug_parts[#aug_parts+1] = _gs_quote_single(a) end
+        local cmd = ('input //gs equip {%s={name=%s,augments={%s}}}')
+            :format(chat_slot, _gs_quote_single(name), table.concat(aug_parts, ','))
+        windower.send_command(cmd)
+    else
+        windower.send_command('input /equip ' .. chat_slot .. ' "' .. name .. '"')
+    end
 end
 
 local function handle_kb_action(action)
@@ -463,7 +494,7 @@ local function handle_kb_action(action)
         -- the item lands on the character, not just in GSUI's in-memory
         -- custom set display. Previous behavior was display-only, which
         -- looked like "I clicked the item and nothing happened" in game.
-        _send_equip(action.slot, action.item.name)
+        _send_equip(action.slot, action.item)   -- whole item so augments survive
         windower.add_to_chat(207, 'GSUI: equipped ' .. action.item.name .. ' -> ' .. action.slot)
     elseif action.type == 'bag' then
         local dest = action.bag_name
@@ -811,35 +842,32 @@ local function handle_click(mx, my)
         windower.add_to_chat(207, 'GSUI: All equipment slots cleared.')
         return true
     elseif hit.type == 'reequip_btn' then
-        -- Dual purpose:
-        --   * If a custom set is pending (the user has been clicking
-        --     items into the equip pane), commit the whole pending set
-        --     to the character via /equip chat commands. This is the
-        --     "Equip Now" / batch-apply path users asked for.
-        --   * Otherwise, do the original behavior: reset GSUI's display
-        --     to whatever's currently equipped on the character. Useful
-        --     when the user wants to start a new build from scratch.
-        if custom_set_active and set_gen.has_items() then
-            local slots = set_gen.get_all_slots()
-            local count = 0
-            for slot_name, item in pairs(slots) do
-                if item and item.name then
-                    _send_equip(slot_name, item.name)
-                    count = count + 1
-                end
-            end
-            ui.set_status('Applied custom set (' .. count .. ' slots).')
-            windower.add_to_chat(207, 'GSUI: equipped ' .. count .. ' slot(s) from custom set.')
-        else
-            custom_set_active = false
-            set_gen.clear()
-            local eq = scanner.scan_equipment()
-            ui.update_equipment(eq)
-            set_gen.populate_from_equipment(eq)
-            update_stats(eq)
-            ui.set_status('Reset to equipped gear.')
-            windower.add_to_chat(207, 'GSUI: Reset to currently equipped gear.')
+        -- "Equip Now" -- applies every slot in the GSUI grid to the
+        -- character via the augment-aware _send_equip helper. Augmented
+        -- items go through `//gs equip` (which matches the augment block
+        -- in inventory) so the right cape / weapon variant lands instead
+        -- of whichever copy /equip happened to find first.
+        --
+        -- The grid's source-of-truth pattern is now:
+        --   * "Update Gear" READS live equipped -> grid -> .lua
+        --   * "Equip Now"   WRITES grid -> character (no .lua touch)
+        -- so this branch no longer has the prior "reset to equipped"
+        -- fallback -- Update Gear already does that direction better.
+        local slots = set_gen.get_all_slots()
+        if not slots or not next(slots) then
+            ui.set_status('Nothing in the GSUI grid to equip.')
+            windower.add_to_chat(167, 'GSUI: Equip Now -- grid is empty. Drop items in the slots first (or use Update Gear / Load).')
+            return true
         end
+        local count = 0
+        for slot_name, item in pairs(slots) do
+            if item and item.name then
+                _send_equip(slot_name, item)   -- pass the whole item table so augments survive
+                count = count + 1
+            end
+        end
+        ui.set_status('Equip Now: ' .. count .. ' slots sent.')
+        windower.add_to_chat(207, 'GSUI: Equip Now -- ' .. count .. ' slot(s) sent to character.')
         return true
     elseif hit.type == 'save_btn' then
         if set_gen.has_items() then
@@ -1840,7 +1868,7 @@ windower.register_event('addon command', function(...)
         local count = 0
         for slot_name, item in pairs(slots) do
             if item and item.name then
-                _send_equip(slot_name, item.name)
+                _send_equip(slot_name, item)   -- whole table so augments survive
                 count = count + 1
             end
         end

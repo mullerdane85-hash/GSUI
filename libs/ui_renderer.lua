@@ -393,7 +393,11 @@ function ui.build()
     local btn3_y = btn2_y + BTN_H + SLOT_PAD
     elements.reequip_btn_bg = make_bg(btn_x, btn3_y, BTN_W, BTN_H, 220, 35, 80, 130)
     elements.reequip_btn_bg:show()
-    elements.reequip_btn_text = make_text('Re-equip', btn_x + 36, btn3_y + 5, 11, 255, 255, 255, true)
+    -- "Equip Now" -- applies the current GSUI grid contents to the
+    -- character via /equip chat commands. Label was previously "Re-equip"
+    -- with a dual-purpose handler; user asked for a clearer, single-purpose
+    -- name now that Update Gear handles the "read live state" direction.
+    elements.reequip_btn_text = make_text('Equip Now', btn_x + 30, btn3_y + 5, 11, 255, 255, 255, true)
     elements.reequip_btn_text:show()
 
     -- Save / Load buttons
