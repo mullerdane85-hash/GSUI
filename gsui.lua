@@ -795,9 +795,24 @@ local function handle_click(mx, my)
                         'GSUI: auto-fired "//gs reload" so the new gear takes effect immediately.')
                 end
                 -- Re-push the freshly-parsed tree so the panel reflects
-                -- whatever changed on disk
+                -- whatever changed on disk. Catch: set_sets_data() always
+                -- nulls state.sets_selected_node -- so without this dance,
+                -- the second click on Update Gear sees sel_node=nil, falls
+                -- through to clipboard-export mode, and the file never
+                -- gets rewritten. Preserve the selection by stashing the
+                -- node's .path (stable across re-parses), then re-resolving
+                -- it in the fresh tree via tree.find().
+                local sel_path = sel_node and sel_node.path
                 if ui.set_sets_data then
                     ui.set_sets_data(sets_ctl.get_tree(), sets_ctl.get_file_info())
+                end
+                if sel_path and ui.set_selected_set_node then
+                    local ok_tm, tree_mod = pcall(require, 'libs/gear_tree/tree')
+                    local fresh_tree = sets_ctl.get_tree()
+                    if ok_tm and tree_mod and tree_mod.find and fresh_tree then
+                        local found = tree_mod.find(fresh_tree, sel_path)
+                        if found then ui.set_selected_set_node(found) end
+                    end
                 end
                 if ui.refresh_sets_panel then ui.refresh_sets_panel() end
             else
