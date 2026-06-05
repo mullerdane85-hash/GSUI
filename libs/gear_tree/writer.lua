@@ -332,6 +332,19 @@ local function build_inline_table(changes)
     return '{' .. table.concat(parts, ', ') .. '}'
 end
 
+-- Strip Lua line-comments so we can check the last meaningful char of a
+-- table body. Bug we're fixing: the previous "does the body already end
+-- in a comma?" check looked at the raw last char, which for a body like
+--     `feet = "Inyan. Crackows +2",        -- Acc+42, Crit+6%, Haste+3%`
+-- was '%' (from Haste+3%) -- so the writer prepended ANOTHER ',' before
+-- its new field, producing `,\n,\nammo=...` which Lua refuses to parse.
+local function _strip_line_comments(s)
+    -- Block comments `--[[...]]` are intentionally NOT stripped -- the
+    -- writer doesn't expect to see them mid-table and we don't want to
+    -- accidentally eat through one.
+    return (s:gsub('%-%-[^\n]*', ''))
+end
+
 local function build_table_additions(src, open_pos, close_pos, changes, handled)
     local parts = {}
     for _, slot in ipairs(slots.ordered_changes(changes)) do
@@ -342,7 +355,8 @@ local function build_table_additions(src, open_pos, close_pos, changes, handled)
     if #parts == 0 then return nil end
 
     local body = src:sub(open_pos + 1, close_pos - 1)
-    local trimmed = body:gsub('%s+$', '')
+    -- Comment-stripped view for the "needs leading comma?" decision.
+    local trimmed = _strip_line_comments(body):gsub('%s+$', '')
     local separator = trimmed ~= '' and trimmed:sub(-1) ~= ',' and ',' or ''
     if body:find('\n', 1, true) then
         local indent = table_indent(src, open_pos, close_pos)
