@@ -30,28 +30,55 @@ windower.register_event('incoming chunk', function(id, original)
     cached_stats.atk    = p['Attack']
 end)
 
--- Stat definitions: name, patterns to match, suffix for display
--- Each pattern extracts a numeric value from description/augment text
--- Pattern variants below are curated from a sweep of every augment line that
--- appears in the user's gs_export dumps (39 files, 183 unique augment
--- strings, 63 unique stat-name tokens after splitting multi-stat lines).
--- Each new pattern is paired with a concrete real-world augment text that
--- prompted it. Comment the source in-line so the next maintainer knows why
--- the pattern exists and what gear it was needed for.
+-- =============================================================================
+-- Stat definitions: master list of every stat GSUI knows about, with EVERY
+-- known FFXI phrasing per stat. Each entry is { key, name, cap, suffix,
+-- patterns, exclude?, negative? }. Patterns are Lua patterns (not regex);
+-- each captures a single numeric value via %+(%d+) / %-(%d+).
+--
+-- For each stat we try to cover FIVE source forms:
+--
+--   1. BG-Wiki / full description  ("Critical Hit Rate +N%")
+--   2. In-game tooltip abbreviation ("Crit. Hit Rate +N%")
+--   3. Inventory-display short     ("Crit.hit rate+N")
+--   4. Augment quoted form         ('"Crit. Hit Rate"+N%')
+--   5. Community shorthand         ("CHR +N%" / "MAB +N")
+--
+-- Pattern variants were seeded from a sweep of every augment line across
+-- 40 gs_export files (user + friend's set) plus FFXI conventions documented
+-- on BG-Wiki. Real-world source is noted in-line where the variant came
+-- from a specific item.
+-- =============================================================================
 local stat_defs = {
     -- Casting
     { key = 'fc',          name = 'Fast Cast',         cap = 80,   suffix = '%',  patterns = {
-        '"Fast Cast"%s*%+(%d+)',
+        -- 1. BG-Wiki full         "Fast Cast +N%"
         'Fast Cast%s*%+(%d+)',
-        -- FFXI description text: "Spellcasting time -N%" (e.g. Loricate Torque +1)
+        -- 2. Augment quoted       '"Fast Cast"+N%'
+        '"Fast Cast"%s*%+(%d+)',
+        -- 3. Description form     "Spellcasting time -N%" (Loricate Torque +1 etc.)
         '[Ss]pellcasting time%s*%-(%d+)',
+        '[Ss]pell casting time%s*%-(%d+)',
+        -- 4. Community shorthand  "FC +N%"
+        'FC%s*%+(%d+)',
     } },
-    { key = 'qm',          name = 'Quick Magic',       cap = 10,   suffix = '%',  patterns = {'Quick Magic%s*%+(%d+)'} },
-    { key = 'conserve_mp', name = 'Conserve MP',       cap = nil,  suffix = '',   patterns = {'"Conserve MP"%s*%+(%d+)', 'Conserve MP%s*%+(%d+)'} },
+    { key = 'qm',          name = 'Quick Magic',       cap = 10,   suffix = '%',  patterns = {
+        'Quick Magic%s*%+(%d+)',
+        '"Quick Magic"%s*%+(%d+)',
+        'QM%s*%+(%d+)',
+    } },
+    { key = 'conserve_mp', name = 'Conserve MP',       cap = nil,  suffix = '',   patterns = {
+        'Conserve MP%s*%+(%d+)',
+        '"Conserve MP"%s*%+(%d+)',
+    } },
     { key = 'sird',        name = 'Spell Interrupt',   cap = 100,  suffix = '%',  patterns = {
+        -- 1. BG-Wiki full         "Spell interruption rate -N%"
         '[Ss]pell [Ii]nterrupt.*%s*%-(%d+)',
-        -- Augment text seen on Nodens Gorget etc.
+        -- 2. Augment text         "Spell interruption rate down +N%" (Nodens Gorget)
         'Spell interruption rate down%s*%+(%d+)',
+        -- 3. Variant phrasings    "Spellcast interruption -N%"
+        '[Ss]pellcast interruption%s*%-(%d+)',
+        -- 4. Community shorthand  "SIRD +N%"
         'SIRD%s*%+(%d+)',
     } },
     -- Haste
@@ -93,21 +120,67 @@ local stat_defs = {
     } },
     -- Melee
     { key = 'da',          name = 'Double Attack',     cap = nil,  suffix = '%',  patterns = {
-        '"Dbl%.Atk%."%s*%+(%d+)',
-        -- With space: "Dbl. Atk." seen on Adhemar set, Mache earrings etc.
-        '"Dbl%. Atk%."%s*%+(%d+)',
+        -- 1. BG-Wiki full         "Double Attack +N%"
         'Double Attack%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Dbl. Atk. +N%"
+        'Dbl%. Atk%.%s*%+(%d+)',
+        -- 3. Inventory-display    "Dbl.Atk.+N" (no space)
+        'Dbl%.Atk%.%s*%+(%d+)',
+        -- 4. Augment quoted       '"Dbl.Atk."+N' / '"Dbl. Atk."+N' / '"Double Attack"+N'
+        '"Dbl%.Atk%."%s*%+(%d+)',
+        '"Dbl%. Atk%."%s*%+(%d+)',
         '"Double Attack"%s*%+(%d+)',
     } },
-    { key = 'ta',          name = 'Triple Attack',     cap = nil,  suffix = '%',  patterns = {'"Triple Atk%."%s*%+(%d+)', 'Triple Attack%s*%+(%d+)', '"Triple Attack"%s*%+(%d+)'} },
-    { key = 'stp',         name = 'Store TP',          cap = nil,  suffix = '',   patterns = {'"Store TP"%s*%+(%d+)', 'Store TP%s*%+(%d+)'} },
-    { key = 'dw',          name = 'Dual Wield',        cap = nil,  suffix = '',   patterns = {'Dual Wield%s*%+(%d+)', '"Dual Wield"%s*%+(%d+)'} },
-    { key = 'subtle',      name = 'Subtle Blow',       cap = 50,   suffix = '',   patterns = {'"Subtle Blow"%s*%+(%d+)', 'Subtle Blow%s*%+(%d+)'} },
+    { key = 'ta',          name = 'Triple Attack',     cap = nil,  suffix = '%',  patterns = {
+        -- 1. BG-Wiki full         "Triple Attack +N%"
+        'Triple Attack%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Triple Atk. +N%" / "Trpl. Atk. +N%"
+        'Triple Atk%.%s*%+(%d+)',
+        'Trpl%. Atk%.%s*%+(%d+)',
+        -- 3. Inventory-display    "Triple Atk.+N" / "Trpl.Atk.+N"
+        'Trpl%.Atk%.%s*%+(%d+)',
+        -- 4. Augment quoted
+        '"Triple Atk%."%s*%+(%d+)',
+        '"Triple Attack"%s*%+(%d+)',
+        '"Trpl%. Atk%."%s*%+(%d+)',
+    } },
+    { key = 'stp',         name = 'Store TP',          cap = nil,  suffix = '',   patterns = {
+        -- 1/2. Full / abbreviated "Store TP +N"
+        'Store TP%s*%+(%d+)',
+        -- 3. Augment quoted       '"Store TP"+N'
+        '"Store TP"%s*%+(%d+)',
+        -- 4. Community shorthand  "STP +N"
+        'STP%s*%+(%d+)',
+    } },
+    { key = 'dw',          name = 'Dual Wield',        cap = nil,  suffix = '',   patterns = {
+        -- 1/2. Full                "Dual Wield +N"
+        'Dual Wield%s*%+(%d+)',
+        -- 3. Augment quoted        '"Dual Wield"+N'
+        '"Dual Wield"%s*%+(%d+)',
+        -- 4. Community shorthand   "DW +N"
+        'DW%s*%+(%d+)',
+    } },
+    { key = 'subtle',      name = 'Subtle Blow',       cap = 50,   suffix = '',   patterns = {
+        -- 1/2. Full                "Subtle Blow +N"
+        'Subtle Blow%s*%+(%d+)',
+        -- 3. Augment quoted        '"Subtle Blow"+N'
+        '"Subtle Blow"%s*%+(%d+)',
+        -- 4. Community shorthand   "SB +N" -- rare, not added (too generic)
+    } },
     { key = 'crit',        name = 'Crit. Hit Rate',    cap = nil,  suffix = '%',  patterns = {
+        -- 1. BG-Wiki full         "Critical Hit Rate +N%"
         '[Cc]ritical [Hh]it [Rr]ate%s*%+(%d+)',
-        -- Inventory-display form (no spaces): seen on Trial weapons / aug Colada
-        '[Cc]rit%.hit rate%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Crit. Hit Rate +N%" / "Crit. hit rate +N%"
         '[Cc]rit%. [Hh]it [Rr]ate%s*%+(%d+)',
+        '[Cc]rit%. hit rate%s*%+(%d+)',
+        -- 3. Inventory-display    "Crit.hit rate+N" (no space) -- Trial weapons / Colada
+        '[Cc]rit%.hit rate%s*%+(%d+)',
+        '[Cc]rit%.[Hh]it [Rr]ate%s*%+(%d+)',
+        -- 4. Augment quoted       '"Crit. Hit Rate"+N' / '"Critical Hit Rate"+N'
+        '"[Cc]rit%. [Hh]it [Rr]ate"%s*%+(%d+)',
+        '"[Cc]ritical [Hh]it [Rr]ate"%s*%+(%d+)',
+        -- 5. Community shorthand  "Crit Rate +N%" / "CHR +N%"
+        '[Cc]rit [Rr]ate%s*%+(%d+)',
     } },
     { key = 'crit_dmg',    name = 'Crit. Hit Dmg.',    cap = nil,  suffix = '%',  patterns = {
         -- Trial weapons / Empyrean +3
@@ -125,47 +198,148 @@ local stat_defs = {
         '"TP Bonus"%s*%+(%d+)',
     } },
     -- WS
-    { key = 'ws_dmg',      name = 'WS Damage',         cap = nil,  suffix = '%',  patterns = {'[Ww]eapon [Ss]kill [Dd]amage%s*%+(%d+)', 'WSD%s*%+(%d+)'} },
+    { key = 'ws_dmg',      name = 'WS Damage',         cap = nil,  suffix = '%',  patterns = {
+        -- 1. BG-Wiki full        "Weapon Skill Damage +N%"
+        '[Ww]eapon [Ss]kill [Dd]amage%s*%+(%d+)',
+        -- 2. Augment quoted      '"Weapon Skill Damage"+N'
+        '"Weapon Skill Damage"%s*%+(%d+)',
+        -- 3. Community shorthand "WSD +N%"
+        'WSD%s*%+(%d+)',
+    } },
     -- Weapon: trial weapons add a "DMG: +N" augment that boosts base weapon damage
     { key = 'wpn_dmg_aug', name = 'Wpn DMG Aug',       cap = nil,  suffix = '',   patterns = {
         'DMG:%s*%+(%d+)',
         '"DMG:"%s*%+(%d+)',
     }, exclude = {'Blade', 'Skill'} },
     -- Magic Offense
-    { key = 'mab',         name = 'Magic Atk. Bonus',  cap = nil,  suffix = '',   patterns = {'"Mag%.Atk%.Bns%."%s*%+(%d+)', 'Magic Atk%. Bonus%s*%+(%d+)', 'MAB%s*%+(%d+)'}, exclude = {'Pet'} },
+    { key = 'mab',         name = 'Magic Atk. Bonus',  cap = nil,  suffix = '',   patterns = {
+        -- 1. BG-Wiki full         "Magic Attack Bonus +N"
+        'Magic Attack Bonus%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Magic Atk. Bonus +N" / "Mag. Atk. Bonus +N"
+        'Magic Atk%. Bonus%s*%+(%d+)',
+        'Mag%. Atk%. Bonus%s*%+(%d+)',
+        -- 3. Inventory-display    "Mag.Atk.Bns.+N" (no spaces in compound)
+        'Mag%.Atk%.Bns%.%s*%+(%d+)',
+        -- 4. Augment quoted       '"Mag.Atk.Bns."+N' (most common in extdata)
+        '"Mag%.Atk%.Bns%."%s*%+(%d+)',
+        '"Magic Atk%. Bonus"%s*%+(%d+)',
+        '"Magic Attack Bonus"%s*%+(%d+)',
+        -- 5. Community shorthand  "MAB +N" / "M.Atk.B +N"
+        'MAB%s*%+(%d+)',
+        'M%.Atk%.B%s*%+(%d+)',
+        'M%.Atk%.Bns%.%s*%+(%d+)',
+    }, exclude = {'Pet'} },
     { key = 'macc',        name = 'Magic Accuracy',    cap = nil,  suffix = '',   patterns = {
-        'Mag%. Acc%.%s*%+(%d+)',
-        -- Some augments drop the trailing period: "Mag. Acc+20"
-        'Mag%. Acc%s*%+(%d+)',
+        -- 1. BG-Wiki full         "Magic Accuracy +N"
         'Magic Accuracy%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Magic Acc. +N" / "Magic Acc +N"
+        'Magic Acc%.%s*%+(%d+)',
+        'Magic Acc%s+%+(%d+)',
+        -- 3. Inventory-display    "Mag. Acc.+N" / "Mag. Acc+N" / "Mag.Acc.+N"
+        'Mag%. Acc%.%s*%+(%d+)',
+        'Mag%. Acc%s*%+(%d+)',
+        'Mag%.Acc%.%s*%+(%d+)',
+        -- 4. Augment quoted
+        '"Mag%. Acc%."%s*%+(%d+)',
+        '"Magic Accuracy"%s*%+(%d+)',
+        -- 5. Community shorthand  "MAcc +N"
+        'MAcc%s*%+(%d+)',
     }, exclude = {'Pet'} },
     { key = 'mag_dmg',     name = 'Magic Damage',      cap = nil,  suffix = '',   patterns = {
         -- Weapon stat (Maxentius, Daybreak, etc.)
         'Magic Damage%s*%+(%d+)',
         'Mag%. Dmg%.%s*%+(%d+)',
     }, exclude = {'Pet'} },
-    { key = 'mb_dmg',      name = 'Magic Burst Dmg',   cap = 40,   suffix = '%',  patterns = {'[Mm]agic [Bb]urst.*%s*%+(%d+)'} },
+    { key = 'mb_dmg',      name = 'Magic Burst Dmg',   cap = 40,   suffix = '%',  patterns = {
+        -- 1. BG-Wiki full        "Magic Burst Damage +N%" / "Magic Burst Damage II +N%"
+        'Magic Burst Damage II%s*%+(%d+)',
+        'Magic Burst Damage%s*%+(%d+)',
+        -- 2. Inventory short     "Magic burst dmg. +N%"
+        'Magic burst dmg%.%s*%+(%d+)',
+        '[Mm]agic burst dmg%.%s*%+(%d+)',
+        -- 3. Augment quoted
+        '"Magic Burst Damage"%s*%+(%d+)',
+        '"Magic Burst Damage II"%s*%+(%d+)',
+        -- 4. Catch-all (kept from prior version)
+        '[Mm]agic [Bb]urst.*%s*%+(%d+)',
+    } },
     { key = 'occult_acumen',name= '"Occult Acumen"',   cap = nil,  suffix = '',   patterns = {
         -- JSE / Empyrean +3 BST aug
         '"Occult Acumen"%s*%+(%d+)',
     } },
     -- Defense
-    { key = 'dt',          name = 'Damage Taken',      cap = 50,   suffix = '%',  patterns = {'[Dd]amage [Tt]aken%s*%-(%d+)', 'DT%s*%-(%d+)'}, negative = true, exclude = {'Phys', 'Mag', 'Pet'} },
-    { key = 'pdt',         name = 'Phys. Dmg Taken',   cap = 50,   suffix = '%',  patterns = {'[Pp]hys[^%d]*[Dd]amage [Tt]aken%s*%-(%d+)', 'PDT%s*%-(%d+)'}, negative = true },
+    { key = 'dt',          name = 'Damage Taken',      cap = 50,   suffix = '%',  patterns = {
+        -- 1. BG-Wiki / tooltip   "Damage Taken -N%"
+        '[Dd]amage [Tt]aken%s*%-(%d+)',
+        -- 2. Inventory short     "Dmg. taken -N%"
+        '[Dd]mg%. taken%s*%-(%d+)',
+        '[Dd]amage taken%s*%-(%d+)',
+        -- 3. Augment quoted      '"Damage Taken"-N%'
+        '"Damage Taken"%s*%-(%d+)',
+        -- 4. Community shorthand "DT -N%"
+        'DT%s*%-(%d+)',
+    }, negative = true, exclude = {'Phys', 'Mag', 'Pet', 'Breath'} },
+    { key = 'pdt',         name = 'Phys. Dmg Taken',   cap = 50,   suffix = '%',  patterns = {
+        -- 1. BG-Wiki full        "Physical Damage Taken -N%"
+        'Physical [Dd]amage [Tt]aken%s*%-(%d+)',
+        -- 2. Tooltip             "Phys. Damage Taken -N%" / "Phys. Dmg. Taken -N%"
+        '[Pp]hys%. [Dd]amage [Tt]aken%s*%-(%d+)',
+        '[Pp]hys%. [Dd]mg%. [Tt]aken%s*%-(%d+)',
+        -- 3. Inventory short     "Phys. dmg. taken -N%"
+        '[Pp]hys%. dmg%. taken%s*%-(%d+)',
+        -- 4. Catch-all for       "Phys[anything]Damage Taken"
+        '[Pp]hys[^%d]*[Dd]amage [Tt]aken%s*%-(%d+)',
+        -- 5. Community shorthand "PDT -N%"
+        'PDT%s*%-(%d+)',
+    }, negative = true },
     { key = 'mdt',         name = 'Mag. Dmg Taken',    cap = 50,   suffix = '%',  patterns = {
-        '[Mm]ag[^%d]*[Dd]amage [Tt]aken%s*%-(%d+)',
-        -- "Magic dmg. taken -N%" abbreviated form
+        -- 1. BG-Wiki full        "Magic Damage Taken -N%"
+        'Magic [Dd]amage [Tt]aken%s*%-(%d+)',
+        -- 2. Tooltip             "Mag. Damage Taken -N%" / "Mag. Dmg. Taken -N%"
+        'Mag%. [Dd]amage [Tt]aken%s*%-(%d+)',
+        'Mag%. [Dd]mg%. [Tt]aken%s*%-(%d+)',
+        -- 3. Inventory short     "Magic dmg. taken -N%" / "Mag. dmg. taken -N%"
         '[Mm]agic dmg%. taken%s*%-(%d+)',
+        'Mag%. dmg%. taken%s*%-(%d+)',
+        -- 4. Catch-all for       "Mag[anything]Damage Taken"
+        '[Mm]ag[^%d]*[Dd]amage [Tt]aken%s*%-(%d+)',
+        -- 5. Community shorthand "MDT -N%"
         'MDT%s*%-(%d+)',
     }, negative = true },
     { key = 'meva',        name = 'Magic Evasion',     cap = nil,  suffix = '',   patterns = {
+        -- 1. BG-Wiki full         "Magic Evasion +N"
         'Magic Evasion%s*%+(%d+)',
-        'Mag%. Eva%.%s*%+(%d+)',
-        -- "Mag. Evasion" mid-abbreviated form (Aya. +2 etc.)
+        -- 2. Tooltip abbreviation "Magic Eva. +N" / "Mag. Evasion +N"
+        'Magic Eva%.%s*%+(%d+)',
         'Mag%. Evasion%s*%+(%d+)',
+        -- 3. Inventory-display    "Mag. Eva.+N" / "Mag. Eva+N"
+        'Mag%. Eva%.%s*%+(%d+)',
+        'Mag%. Eva%s*%+(%d+)',
+        'Mag%.Eva%.%s*%+(%d+)',
+        -- 4. Augment quoted
+        '"Mag%. Eva%."%s*%+(%d+)',
+        '"Magic Evasion"%s*%+(%d+)',
+        -- 5. Community shorthand  "MEva +N"
+        'MEva%s*%+(%d+)',
+        -- Catch-all for weird truncations (Mag.Evas, Mag.Eva, etc.)
         '[Mm]ag[ic]*.*[Ee]vas?i?o?n?%.?%s*%+(%d+)',
     } },
-    { key = 'mdef',        name = 'Magic Def. Bonus',  cap = nil,  suffix = '',   patterns = {'"Mag%.Def%.Bns%."%s*%+(%d+)', 'Magic Def%. Bonus%s*%+(%d+)'} },
+    { key = 'mdef',        name = 'Magic Def. Bonus',  cap = nil,  suffix = '',   patterns = {
+        -- 1. BG-Wiki full         "Magic Defense Bonus +N"
+        'Magic Defense Bonus%s*%+(%d+)',
+        -- 2. Tooltip abbreviation "Magic Def. Bonus +N" / "Mag. Def. Bonus +N"
+        'Magic Def%. Bonus%s*%+(%d+)',
+        'Mag%. Def%. Bonus%s*%+(%d+)',
+        -- 3. Inventory-display    "Mag.Def.Bns.+N" (no spaces)
+        'Mag%.Def%.Bns%.%s*%+(%d+)',
+        -- 4. Augment quoted
+        '"Mag%.Def%.Bns%."%s*%+(%d+)',
+        '"Magic Def%. Bonus"%s*%+(%d+)',
+        '"Magic Defense Bonus"%s*%+(%d+)',
+        -- 5. Community shorthand  "MDB +N"
+        'MDB%s*%+(%d+)',
+        'M%.Def%.B%s*%+(%d+)',
+    } },
     { key = 'evasion',     name = 'Evasion',           cap = nil,  suffix = '',   patterns = {
         -- Regular evasion stat (PLD / NIN / DNC tank gear)
         'Evasion%s*%+(%d+)',
@@ -177,11 +351,37 @@ local stat_defs = {
         'Enmity%s*%-(%d+)',
     }, exclude = {'Pet'} },
     -- Healing
-    { key = 'cure_pot',    name = 'Cure Potency',      cap = 50,   suffix = '%',  patterns = {'"Cure" [Pp]otency%s*%+(%d+)', 'Cure [Pp]otency%s*%+(%d+)'} },
+    { key = 'cure_pot',    name = 'Cure Potency',      cap = 50,   suffix = '%',  patterns = {
+        -- 1. BG-Wiki full        "Cure Potency +N%"
+        'Cure Potency%s*%+(%d+)',
+        'Cure potency%s*%+(%d+)',
+        -- 2. Quoted-spell variant '"Cure" Potency +N%' (Bunzi gear)
+        '"Cure" [Pp]otency%s*%+(%d+)',
+        -- 3. "Cure Potency II"   for the II tier (Empyrean +3 etc.)
+        'Cure Potency II%s*%+(%d+)',
+        '"Cure Potency II"%s*%+(%d+)',
+        -- 4. Augment quoted
+        '"Cure Potency"%s*%+(%d+)',
+        -- 5. Inventory short     "Cure pot.+N%"
+        'Cure pot%.%s*%+(%d+)',
+    } },
     -- Utility
-    { key = 'refresh',     name = 'Refresh',           cap = nil,  suffix = '',   patterns = {'"Refresh"%s*%+(%d+)', 'Refresh%s*%+(%d+)'}, exclude = {'Pet'} },
-    { key = 'regen',       name = 'Regen',             cap = nil,  suffix = '',   patterns = {'"Regen"%s*%+(%d+)', 'Regen%s*%+(%d+)'}, exclude = {'Pet'} },
-    { key = 'th',          name = 'Treasure Hunter',   cap = nil,  suffix = '',   patterns = {'"Treasure Hunter"%s*%+(%d+)', 'Treasure Hunter%s*%+(%d+)'} },
+    { key = 'refresh',     name = 'Refresh',           cap = nil,  suffix = '',   patterns = {
+        'Refresh%s*%+(%d+)',
+        '"Refresh"%s*%+(%d+)',
+    }, exclude = {'Pet'} },
+    { key = 'regen',       name = 'Regen',             cap = nil,  suffix = '',   patterns = {
+        'Regen%s*%+(%d+)',
+        '"Regen"%s*%+(%d+)',
+    }, exclude = {'Pet'} },
+    { key = 'th',          name = 'Treasure Hunter',   cap = nil,  suffix = '',   patterns = {
+        -- 1. BG-Wiki / tooltip   "Treasure Hunter +N"
+        'Treasure Hunter%s*%+(%d+)',
+        -- 2. Augment quoted      '"Treasure Hunter"+N'
+        '"Treasure Hunter"%s*%+(%d+)',
+        -- 3. Community shorthand "TH +N"
+        'TH%s*%+(%d+)',
+    } },
     -- Stats
     { key = 'str',         name = 'STR',               cap = nil,  suffix = '',   patterns = {'STR%s*%+(%d+)'}, exclude = {'Pet'} },
     { key = 'dex',         name = 'DEX',               cap = nil,  suffix = '',   patterns = {'DEX%s*%+(%d+)'}, exclude = {'Pet'} },
@@ -228,8 +428,15 @@ local stat_defs = {
     }, exclude = {'Pet'} },
     -- Quadruple Attack (very rare, found on some Empyrean +3 / Mythic Aftermath)
     { key = 'qa',         name = 'Quadruple Atk.',     cap = nil,  suffix = '%',  patterns = {
+        -- 1. BG-Wiki full        "Quadruple Attack +N%"
         'Quadruple Attack%s*%+(%d+)',
+        -- 2. Tooltip abbreviated "Quad. Atk. +N%"
+        'Quad%. Atk%.%s*%+(%d+)',
+        -- 3. Augment quoted
         '"Quadruple Attack"%s*%+(%d+)',
+        '"Quad%. Atk%."%s*%+(%d+)',
+        -- 4. Community shorthand "QA +N%"
+        'QA%s*%+(%d+)',
     } },
     -- Defense stat (PLD / NIN tank gear)
     { key = 'def',        name = 'Defense',            cap = nil,  suffix = '',   patterns = {
