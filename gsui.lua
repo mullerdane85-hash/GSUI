@@ -762,16 +762,19 @@ local function handle_click(mx, my)
             end
             windower.add_to_chat(207, ('GSUI dbg: captured %d slots from the GSUI grid'):format(slot_count))
             -- Dump the slot list so it's obvious which slots got written.
+            -- Empty grid is INTENTIONAL: user feedback was "if the grid in
+            -- GSUI shows I only have weapons then it should update my GS to
+            -- be only weapons", which implies the grid IS the spec -- even
+            -- when that spec is the empty set. Used to early-return here on
+            -- empty grid; that blocked the legitimate "clear this set"
+            -- workflow, so we now let the writer through and let it produce
+            -- `sets.<name> = {}`.
             do
                 local present = {}
                 for s in pairs(changes) do present[#present+1] = s end
                 table.sort(present)
-                windower.add_to_chat(160, 'GSUI dbg: slots in changes: ' .. table.concat(present, ', '))
-            end
-            if not next(changes) then
-                ui.set_status('Grid is empty -- nothing to save.')
-                windower.add_to_chat(167, 'GSUI: grid has 0 slots -- drop items in the grid (or click a set to load it) before pressing Update Gear.')
-                return true
+                windower.add_to_chat(160, 'GSUI dbg: slots in changes: ' ..
+                    (#present > 0 and table.concat(present, ', ') or '(none -- writing empty set)'))
             end
             -- Detect if writer.save returned "changed = false" (it found
             -- the assignment but the patched source ended up identical
