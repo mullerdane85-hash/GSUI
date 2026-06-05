@@ -1763,6 +1763,12 @@ function ui.hide()
     hide_element(elements.stat_text)
     hide_element(elements.generate_btn_bg)
     hide_element(elements.generate_btn_text)
+    -- Single-slot Remove button (added when the Remove row got split).
+    -- Was missing from this hide list, so when the user pressed B to
+    -- toggle GSUI off, this lone button stayed pinned on screen with
+    -- nothing behind it. Hide it alongside Remove All.
+    hide_element(elements.remove_btn_bg)
+    hide_element(elements.remove_btn_text)
     hide_element(elements.remove_all_btn_bg)
     hide_element(elements.remove_all_btn_text)
     hide_element(elements.reequip_btn_bg)
