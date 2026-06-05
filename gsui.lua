@@ -460,19 +460,28 @@ local _SLOT_NAME_TO_ID = {
 -- has -- the exact community report ("Hashishin Bazubands +2 (not in
 -- inventory)" when the item IS sitting in wardrobe).
 --
+-- One-shot name -> item id resolver. Hot path: called ONCE per gear
+-- slot when loading a set, then reused for every inventory item we
+-- compare against. Earlier I had `_names_match(have, want)` doing
+-- BOTH lookups inline -- so a set click meant
+--   16 slots * ~100 cached items * 2 res.items:with() = ~3,000
+-- res.items linear scans, and each scan walks ~10,000 entries. That
+-- adds up to ~30M ops per click, which is exactly what was lagging.
+local function _resolve_name_to_id(n)
+    if not n or n == '' then return nil end
+    local hit = res.items:with('english', n) or res.items:with('english_log', n)
+    return hit and hit.id or nil
+end
+
 -- Returns true if `want` resolves to the same item id as `have`. Falls
 -- through to a raw string compare for items res.items doesn't know about.
+-- Kept for the augment-aware equip path where we resolve on a per-item
+-- basis; the hot set-load loop bypasses this and uses pre-resolved ids.
 local function _names_match(have, want)
     if not have or not want then return false end
     if have == want then return true end
-    -- Resolve each name to its item id via either short or long form.
-    local function _to_id(n)
-        if not n or n == '' then return nil end
-        local hit = res.items:with('english', n) or res.items:with('english_log', n)
-        return hit and hit.id or nil
-    end
-    local have_id = _to_id(have)
-    local want_id = _to_id(want)
+    local have_id = _resolve_name_to_id(have)
+    local want_id = _resolve_name_to_id(want)
     if have_id and want_id and have_id == want_id then return true end
     return false
 end
@@ -857,8 +866,16 @@ local function handle_click(mx, my)
             end
             if want_name then
                 local item_info = nil
+                -- Pre-resolve once outside the inventory walk. Inner
+                -- loop becomes pure id-or-name compare (O(1) per cached
+                -- item) instead of the previous O(res.items size) per
+                -- cached item -- this was the "click a set, GSUI lags
+                -- like crazy" bug. With ~10k res.items entries, hoisting
+                -- this cut the inner work by ~10,000x.
+                local want_id = _resolve_name_to_id(want_name)
                 for _, it in ipairs(cached_all_items) do
-                    if _names_match(it.name, want_name) then
+                    if it.name == want_name
+                        or (want_id and it.id == want_id) then
                         item_info = it
                         break
                     end
