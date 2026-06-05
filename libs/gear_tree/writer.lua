@@ -439,6 +439,55 @@ local function first_non_space(src, first, last)
     return skip_ws_comments(src, first, last)
 end
 
+-- gs_export-exact slot order. /gs export emits slots in this sequence;
+-- any slot missing from `changes` is omitted entirely (which is how the
+-- user removes a slot -- empty grid slot -> no field in the output).
+local _GS_EXPORT_ORDER = {
+    'main', 'sub', 'range', 'ammo',
+    'head', 'body', 'hands', 'legs', 'feet',
+    'neck', 'waist', 'left_ear', 'right_ear', 'left_ring', 'right_ring',
+    'back',
+}
+
+-- Serialize one slot the way /gs export does:
+--   bare item        ->  slot="Name"
+--   augmented item   ->  slot={ name="Name", augments={'aug1','aug2',}}
+-- Note the trailing comma INSIDE the augments table -- gs_export emits it,
+-- and we match that exactly so files round-trip clean.
+local function _gs_export_serialize(slot, item)
+    if not item or item.empty then return nil end
+    if item.augments and #item.augments > 0 then
+        local augs = {}
+        for _, a in ipairs(item.augments) do augs[#augs+1] = quote_single(a) end
+        return slot .. '={ name=' .. quote_double(item.name)
+            .. ', augments={' .. table.concat(augs, ',') .. ',}}'
+    end
+    return slot .. '=' .. quote_double(item.name)
+end
+
+-- Build the body of a sets.<name> = { ... } block in /gs export's exact
+-- format. Indent comes from the surrounding file so the result blends in.
+local function _build_gs_export_body(changes, indent)
+    indent = indent or '    '
+    local lines = {}
+    local seen = {}
+    for _, slot in ipairs(_GS_EXPORT_ORDER) do
+        local item = changes[slot]
+        if item and item.name and item.name ~= '' then
+            lines[#lines+1] = indent .. _gs_export_serialize(slot, item) .. ','
+            seen[slot] = true
+        end
+    end
+    -- Any caller-supplied slot we don't know about gets appended after the
+    -- standard slots so we don't silently lose data.
+    for slot, item in pairs(changes) do
+        if not seen[slot] and item and item.name and item.name ~= '' then
+            lines[#lines+1] = indent .. _gs_export_serialize(slot, item) .. ','
+        end
+    end
+    return table.concat(lines, '\n')
+end
+
 local function patch_table_assignment(src, assignment, changes)
     local open_pos = first_non_space(src, assignment.rhs_start, assignment.rhs_end)
     if src:sub(open_pos, open_pos) ~= '{' then
@@ -446,7 +495,23 @@ local function patch_table_assignment(src, assignment, changes)
     end
     local close_pos = find_matching(src, open_pos, '{', '}')
     if not close_pos then return nil, 'Could not find the end of this set table.' end
-    return update_table_at(src, open_pos, close_pos, changes)
+
+    -- WHOLE-BLOCK REPLACEMENT (gs_export format).
+    -- User explicit ask: "rewrite of the gear set when clicking update gear"
+    -- so we no longer surgically patch individual fields. The grid IS the
+    -- new set definition: any slot the user removed disappears from the
+    -- file, and we emit in the canonical /gs export slot order. Comments
+    -- inside the set block are intentionally dropped -- they routinely went
+    -- stale (e.g. the WHM file's "-- Acc+44, STP+6" notes survived an Aya
+    -- -> Inyanga swap and started lying).
+    local indent = table_indent(src, open_pos, close_pos)
+    local closing_indent = close_indent(src, close_pos)
+    local body = _build_gs_export_body(changes, indent)
+    local replacement = '{\n' .. body .. '\n' .. closing_indent .. '}'
+
+    return apply_edits(src, {
+        { start = open_pos, finish = close_pos, text = replacement },
+    })
 end
 
 local function patch_combine_assignment(src, assignment, changes)
