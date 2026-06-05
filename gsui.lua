@@ -449,6 +449,34 @@ local _SLOT_NAME_TO_ID = {
     back      = 12, waist     = 13, legs      = 14, feet      = 15,
 }
 
+-- FFXI's res.items has TWO english fields per item:
+--   .english     = inventory-display short form ("Hashi. Bazu. +2",
+--                                                 "Behem. Leather")
+--   .english_log = full english name             ("Hashishin Bazubands +2",
+--                                                 "Behemoth Leather")
+-- A set declaration can use either form (gs_export emits the short one;
+-- hand-written sets and Mote includes use the long one). Without a
+-- both-ways match, "not in inventory" fires on items the user clearly
+-- has -- the exact community report ("Hashishin Bazubands +2 (not in
+-- inventory)" when the item IS sitting in wardrobe).
+--
+-- Returns true if `want` resolves to the same item id as `have`. Falls
+-- through to a raw string compare for items res.items doesn't know about.
+local function _names_match(have, want)
+    if not have or not want then return false end
+    if have == want then return true end
+    -- Resolve each name to its item id via either short or long form.
+    local function _to_id(n)
+        if not n or n == '' then return nil end
+        local hit = res.items:with('english', n) or res.items:with('english_log', n)
+        return hit and hit.id or nil
+    end
+    local have_id = _to_id(have)
+    local want_id = _to_id(want)
+    if have_id and want_id and have_id == want_id then return true end
+    return false
+end
+
 -- Compare two augment lists for equality (order-independent). Items in
 -- inventory may report augments in a slightly different order than what
 -- gs_export saved, so we sort-compare to be safe.
@@ -479,7 +507,12 @@ local function _find_in_inventory(name, augs)
             for inv_index, raw in pairs(bag_items) do
                 if type(raw) == 'table' and raw.id and raw.id > 0 then
                     local def = res.items[raw.id]
-                    if def and (def.english == name or def.en == name or def.english_log == name) then
+                    -- Match against every name field FFXI exposes so a
+                    -- short-form set entry ("Hashi. Bazu. +2") and a
+                    -- long-form entry ("Hashishin Bazubands +2") both
+                    -- resolve to the same inventory copy.
+                    if def and (def.english == name or def.en == name
+                                or def.english_log == name or def.enl == name) then
                         if not want_augs then
                             return bag_id, inv_index
                         end
@@ -825,7 +858,7 @@ local function handle_click(mx, my)
             if want_name then
                 local item_info = nil
                 for _, it in ipairs(cached_all_items) do
-                    if it.name == want_name then
+                    if _names_match(it.name, want_name) then
                         item_info = it
                         break
                     end
