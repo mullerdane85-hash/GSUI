@@ -208,6 +208,97 @@ local stat_defs = {
         'Pet: [Dd]amage [Tt]aken%s*%-(%d+)',
         'Pet: DT%s*%-(%d+)',
     }, negative = true },
+    -- =========================================================================
+    -- Additional patterns from second-pass sweep of a friend's Wingdings export
+    -- (mostly multi-job WS / spell-skill / JSE coverage). Real augment text
+    -- noted next to each.
+    -- =========================================================================
+    -- Ranged offense (RNG / BST / COR / weapon-bow gear, not pet)
+    { key = 'ranged_acc', name = 'Ranged Acc.',        cap = nil,  suffix = '',   patterns = {
+        'Rng%.Acc%.%s*%+(%d+)',
+        'Rng%. Acc%.%s*%+(%d+)',
+        'R%.Acc%.%s*%+(%d+)',
+        'Ranged Accuracy%s*%+(%d+)',
+    }, exclude = {'Pet'} },
+    { key = 'ranged_atk', name = 'Ranged Atk.',        cap = nil,  suffix = '',   patterns = {
+        'Rng%.Atk%.%s*%+(%d+)',
+        'Rng%. Atk%.%s*%+(%d+)',
+        'R%.Atk%.%s*%+(%d+)',
+        'Ranged Attack%s*%+(%d+)',
+    }, exclude = {'Pet'} },
+    -- Quadruple Attack (very rare, found on some Empyrean +3 / Mythic Aftermath)
+    { key = 'qa',         name = 'Quadruple Atk.',     cap = nil,  suffix = '%',  patterns = {
+        'Quadruple Attack%s*%+(%d+)',
+        '"Quadruple Attack"%s*%+(%d+)',
+    } },
+    -- Defense stat (PLD / NIN tank gear)
+    { key = 'def',        name = 'Defense',            cap = nil,  suffix = '',   patterns = {
+        'DEF%s*%+(%d+)',
+        'Defense%s*%+(%d+)',
+    }, exclude = {'Pet'} },
+    -- Parrying rate (PLD / DRK gear)
+    { key = 'parrying',   name = 'Parrying Rate',      cap = nil,  suffix = '%',  patterns = {
+        'Parrying rate%s*%+(%d+)',
+    } },
+    -- Breath damage taken (DRG / dragoon-specific)
+    { key = 'breath_dt',  name = 'Breath Dmg Taken',   cap = 50,   suffix = '%',  patterns = {
+        '[Bb]reath dmg%. taken%s*%-(%d+)',
+        '[Bb]reath damage taken%s*%-(%d+)',
+    }, negative = true },
+    -- Weapon delay reduction (Trial / Aeonic / Mythic)
+    { key = 'delay_red',  name = 'Weapon Delay',       cap = nil,  suffix = '',   patterns = {
+        'Delay:%s*%-(%d+)',
+        'Delay%s*%-(%d+)',
+    }, negative = true },
+    -- Job-ability recast reduction
+    { key = 'ja_recast',  name = 'Ability Delay',      cap = nil,  suffix = '',   patterns = {
+        'ability delay%s*%-(%d+)',
+        '[Aa]bility recast%s*%-(%d+)',
+    }, negative = true },
+    -- Capacity point / merit XP gain
+    { key = 'cap_point',  name = 'Cap. Point',         cap = nil,  suffix = '%',  patterns = {
+        'Cap%. Point%s*%+(%d+)',
+        'Capacity Point%s*%+(%d+)',
+    } },
+    -- Weapon Skill Accuracy (Aeonic weapons / Empyrean +3)
+    { key = 'ws_acc',     name = 'WS Accuracy',        cap = nil,  suffix = '',   patterns = {
+        'Weapon Skill Acc%.%s*%+(%d+)',
+        'Weapon [Ss]kill [Aa]ccuracy%s*%+(%d+)',
+    } },
+    -- ---------- Magic skills (per school) ----------
+    { key = 'enh_skill',  name = 'Enhancing Skill',    cap = nil,  suffix = '',   patterns = {
+        '[Ee]nha%.mag%. skill%s*%+(%d+)',
+        '[Ee]nhancing [Mm]agic [Ss]kill%s*%+(%d+)',
+    } },
+    { key = 'enf_skill',  name = 'Enfeebling Skill',   cap = nil,  suffix = '',   patterns = {
+        '[Ee]nfb%.mag%. skill%s*%+(%d+)',
+        '[Ee]nfeebling [Mm]agic [Ss]kill%s*%+(%d+)',
+    } },
+    { key = 'dark_skill', name = 'Dark Magic Skill',   cap = nil,  suffix = '',   patterns = {
+        '[Dd]ark magic skill%s*%+(%d+)',
+        '[Dd]ark [Mm]agic [Ss]kill%s*%+(%d+)',
+    } },
+    { key = 'blue_skill', name = 'Blue Magic Skill',   cap = nil,  suffix = '',   patterns = {
+        'Blue Magic skill%s*%+(%d+)',
+        '[Bb]lue [Mm]agic [Ss]kill%s*%+(%d+)',
+    } },
+    { key = 'geo_skill',  name = 'Geomancy Skill',     cap = nil,  suffix = '',   patterns = {
+        'Geomancy Skill%s*%+(%d+)',
+        '[Gg]eomancy [Ss]kill%s*%+(%d+)',
+    } },
+    -- ---------- Spell effect durations ----------
+    { key = 'enh_dur',    name = 'Enh. Mag. Dur.',     cap = nil,  suffix = '',   patterns = {
+        'Enh%. Mag%. eff%. dur%.%s*%+(%d+)',
+        '[Ee]nhancing magic effect duration%s*%+(%d+)',
+    } },
+    { key = 'indi_dur',   name = 'Indi. Eff. Dur.',    cap = nil,  suffix = '',   patterns = {
+        'Indi%. eff%. dur%.%s*%+(%d+)',
+        'Indi effect duration%s*%+(%d+)',
+    } },
+    { key = 'helix_dur',  name = 'Helix Eff. Dur.',    cap = nil,  suffix = '',   patterns = {
+        'Helix eff%. dur%.%s*%+(%d+)',
+        'Helix effect duration%s*%+(%d+)',
+    } },
 }
 
 -- Extract a numeric value from a text line using patterns.
