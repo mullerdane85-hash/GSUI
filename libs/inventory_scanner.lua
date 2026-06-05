@@ -313,6 +313,58 @@ function inventory_scanner.get_slot_display_name(slot_name)
     return slot_display_names[slot_name] or slot_name
 end
 
+-- =============================================================================
+-- "Enhances X effect" annotation table.
+-- FFXI's item description lines like `Enhances "Fast Cast" effect` never spell
+-- out the numeric value, but the server-side mod IS numeric -- LSB tracks it
+-- and the user asked to surface it in the tooltip whenever the description
+-- itself doesn't.
+--
+-- Maps the effect name (the X in Enhances "X" effect) to the LSB modifier
+-- name that base_stats.lookup returns, plus the suffix to append for display.
+-- We only annotate lines that are missing a number; lines that already show
+-- the value (e.g. `"Fast Cast"+5%` on Sindri) are left alone.
+-- =============================================================================
+local _ENHANCE_TO_LSB = {
+    ['Fast Cast']             = { lsb = 'FASTCAST',                  suffix = '%' },
+    ['Conserve MP']           = { lsb = 'CONSERVE_MP',               suffix = ''  },
+    ['Refresh']               = { lsb = 'REFRESH',                   suffix = ''  },
+    ['Regen']                 = { lsb = 'REGEN',                     suffix = ''  },
+    ['Cure']                  = { lsb = 'CURE_POTENCY',              suffix = '%' },
+    ['Cure Potency']          = { lsb = 'CURE_POTENCY',              suffix = '%' },
+    ['Snapshot']              = { lsb = 'SNAPSHOT',                  suffix = '%' },
+    ['Subtle Blow']           = { lsb = 'SUBTLE_BLOW',               suffix = ''  },
+    ['Quick Magic']           = { lsb = 'FASTCAST',                  suffix = '%' }, -- QM uses same LSB key as FC on many items
+    ['Double Attack']         = { lsb = 'DOUBLE_ATTACK',             suffix = '%' },
+    ['Triple Attack']         = { lsb = 'TRIPLE_ATTACK',             suffix = '%' },
+    ['Critical Hit Rate']     = { lsb = 'CRITHITRATE',               suffix = '%' },
+    ['Magic Burst Damage']    = { lsb = 'MAGIC_BURST_BONUS_CAPPED',  suffix = '%' },
+    ['Magic Attack Bonus']    = { lsb = 'MATT',                      suffix = ''  },
+    ['Treasure Hunter']       = { lsb = 'TH',                        suffix = ''  },
+    ['Store TP']              = { lsb = 'STORETP',                   suffix = ''  },
+}
+
+-- Try to look up a numeric value annotation for an "Enhances X effect" /
+-- "Augments X effect" line. Returns the formatted annotation (e.g. "+2%")
+-- or nil if we don't know.
+local _base_stats_mod
+local function _enhance_value(item_name, effect_name)
+    if not item_name or not effect_name then return nil end
+    local rule = _ENHANCE_TO_LSB[effect_name]
+    if not rule then return nil end
+    _base_stats_mod = _base_stats_mod or require('libs/base_stats')
+    -- base_stats.lookup returns the GSUI-key form with scaling already
+    -- applied. We need the RAW LSB-name value, so reach in once.
+    local raw = _base_stats_mod.raw_lookup and _base_stats_mod.raw_lookup(item_name)
+    if not raw then return nil end
+    local v = raw[rule.lsb]
+    if not v or v == 0 then return nil end
+    -- HASTE_GEAR / DMG family are stored x100 in LSB; FASTCAST is raw integer.
+    -- _ENHANCE_TO_LSB only points at raw-int stats, so no scaling needed here.
+    local sign = (v > 0) and '+' or '-'
+    return sign .. math.abs(v) .. rule.suffix
+end
+
 function inventory_scanner.build_tooltip_text(item_info, highlight_pattern)
     if not item_info then return '' end
     local lines = {}
@@ -333,6 +385,20 @@ function inventory_scanner.build_tooltip_text(item_info, highlight_pattern)
         for line in item_info.description:gmatch('[^\r\n]+') do
             local trimmed = line:gsub('%s+$', '')
             if trimmed ~= '' then
+                -- "Enhances X effect" / "Augments X effect" lines never spell
+                -- out the value; annotate them with the LSB-sourced number.
+                local effect = trimmed:match('[Ee]nhances%s*"([^"]+)"%s*[Ee]ffect')
+                           or trimmed:match('[Aa]ugments%s*"([^"]+)"%s*[Ee]ffect')
+                           or trimmed:match('[Ee]nhances%s*"([^"]+)"')
+                           or trimmed:match('[Aa]ugments%s*"([^"]+)"')
+                if effect then
+                    local annotation = _enhance_value(item_info.name, effect)
+                    if annotation and not trimmed:match('[%+%-]%d') then
+                        -- Only append when the line didn't already have a
+                        -- number; "Cure" Potency +25% should stay as-is.
+                        trimmed = trimmed .. '  (' .. annotation .. ')'
+                    end
+                end
                 local wrapped = word_wrap(trimmed, max_chars)
                 -- Highlight matching lines if filter active
                 if highlight_pattern then

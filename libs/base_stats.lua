@@ -175,6 +175,23 @@ function base_stats.lookup(item_name)
     return out
 end
 
+-- --------------------------------------------------------------------------
+-- Raw LSB-key lookup, for callers that need the original modifier name
+-- (e.g. the tooltip's "Enhances X effect" annotation, which has to query
+-- LSB names like FASTCAST / REFRESH directly). Returns nil if the item
+-- isn't in the JSON. Mirrors lookup() except for the LSB->GSUI conversion.
+-- --------------------------------------------------------------------------
+function base_stats.raw_lookup(item_name)
+    if not item_name or item_name == '' then return nil end
+    _load()
+    local raw = stats_by_name[item_name]
+    if not raw then
+        local en = aliases[item_name]
+        if en then raw = stats_by_name[en] end
+    end
+    return raw
+end
+
 function base_stats.is_loaded()
     return lazy_loaded and next(stats_by_name) ~= nil
 end
