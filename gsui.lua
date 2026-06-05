@@ -1565,6 +1565,34 @@ windower.register_event('addon command', function(...)
             windower.add_to_chat(160, '  ' .. mark .. '  ' .. c)
         end
         return
+    elseif cmd == 'debugenhance' or cmd == 'debugaug' then
+        -- Diagnostic: tests the base_stats module end-to-end on a known
+        -- "Enhances X effect" item so we can tell why a tooltip annotation
+        -- isn't appearing. Usage: //gsui debugenhance [item name]
+        local target = (args[1] and table.concat(args, ' ')) or 'Prolix Ring'
+        local ok_bs, bs = pcall(require, 'libs/base_stats')
+        windower.add_to_chat(207, 'GSUI debug: require(libs/base_stats) = '..tostring(ok_bs))
+        if not ok_bs then
+            windower.add_to_chat(167, '   error: '..tostring(bs))
+            return
+        end
+        windower.add_to_chat(207, 'GSUI debug: bs.lookup exists = '..tostring(bs.lookup ~= nil))
+        windower.add_to_chat(207, 'GSUI debug: bs.raw_lookup exists = '..tostring(bs.raw_lookup ~= nil))
+        windower.add_to_chat(207, 'GSUI debug: bs.is_loaded = '..tostring(bs.is_loaded and bs.is_loaded()))
+        if bs.raw_lookup then
+            local raw = bs.raw_lookup(target)
+            if raw then
+                local parts = {}
+                for k, v in pairs(raw) do parts[#parts+1] = k..'='..v end
+                windower.add_to_chat(207, 'GSUI debug: raw_lookup('..target..') = { '..table.concat(parts, ', ')..' }')
+            else
+                windower.add_to_chat(167, 'GSUI debug: raw_lookup('..target..') = nil  (item not in JSON)')
+            end
+        else
+            windower.add_to_chat(167, 'GSUI debug: raw_lookup missing -- cached old base_stats module. '
+                ..'Run //lua reload gsui  (or restart Windower) to refresh.')
+        end
+        return
     elseif cmd == 'sets-reload' or cmd == 'sets' then
         -- Reparse the active GearSwap file. Used after the user edits the
         -- .lua manually outside of GSUI, or after a save to confirm the
