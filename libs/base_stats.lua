@@ -126,6 +126,16 @@ local function _read_file(path)
     return data
 end
 
+-- Resolve the right "parse JSON string -> table" function across libs.
+-- Windower's libs/json.lua uses json.parse(). Other Lua JSON libs use
+-- json.decode(). Try both so we don't care which lib was actually loaded.
+local function _json_parse(text)
+    if not json or not text then return nil end
+    if type(json.parse)  == 'function' then return json.parse(text) end
+    if type(json.decode) == 'function' then return json.decode(text) end
+    return nil
+end
+
 local function _load()
     if lazy_loaded then return end
     lazy_loaded = true
@@ -138,11 +148,11 @@ local function _load()
     local stats_text = _read_file(addon_path .. 'data/item_stats.json')
     local alias_text = _read_file(addon_path .. 'data/item_name_aliases.json')
     if stats_text then
-        local ok, parsed = pcall(json.decode, stats_text)
+        local ok, parsed = pcall(_json_parse, stats_text)
         if ok and type(parsed) == 'table' then stats_by_name = parsed end
     end
     if alias_text then
-        local ok, parsed = pcall(json.decode, alias_text)
+        local ok, parsed = pcall(_json_parse, alias_text)
         if ok and type(parsed) == 'table' then aliases = parsed end
     end
 end
