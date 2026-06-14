@@ -636,15 +636,22 @@ local function handle_kb_action(action)
     elseif action.type == 'bag' then
         local dest = action.bag_name
         local item = action.item
-        if not bag_org.is_bag_currently_accessible(dest)
-           or not bag_org.is_bag_currently_accessible(item.bag_name) then
-            local blocked = not bag_org.is_bag_currently_accessible(dest) and dest or item.bag_name
-            ui.set_status('Bag not accessible: ' .. blocked)
-            windower.add_to_chat(207, 'GSUI: ' .. blocked .. ' is not accessible from your current location. Stand in your Mog House or at a Nomad/Porter Moogle that has unlocked it.')
-        elseif ui.get_org_view() == 'scattered' and _org_all_bag_items then
+        -- Per user (2026-06-14): the preflight is_bag_currently_accessible
+        -- check was unreliable (refused legit moves while the user was
+        -- standing in their mog house). We just attempt the move now and
+        -- verify by inventory diff. If nothing landed, suggest the mog
+        -- house. If something landed, list what moved.
+        if ui.get_org_view() == 'scattered' and _org_all_bag_items then
+            -- Snapshot how much of this item id sits in `dest` BEFORE.
+            -- After the queue settles we re-scan and the delta = what
+            -- actually moved (server-rejected moves leave dest unchanged).
+            local dest_before = 0
+            for _, it in ipairs(_org_all_bag_items[dest] or {}) do
+                if it.id == item.id then dest_before = dest_before + it.count end
+            end
             local move_count = 0
             for bag_name, items in pairs(_org_all_bag_items) do
-                if bag_name ~= dest and bag_org.is_bag_accessible(bag_name) then
+                if bag_name ~= dest then
                     for _, bag_item in ipairs(items) do
                         if bag_item.id == item.id then
                             bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count)
@@ -655,22 +662,48 @@ local function handle_kb_action(action)
             end
             if move_count > 0 then
                 ui.set_status('Consolidating ' .. item.name .. ' -> ' .. dest)
-                windower.add_to_chat(207, 'GSUI: Consolidating ' .. item.name .. ' to ' .. dest .. ' (' .. move_count .. ' moves)')
+                coroutine.schedule(function()
+                    if not initialized then return end
+                    refresh_organizer()
+                    local dest_after = 0
+                    for _, it in ipairs(_org_all_bag_items[dest] or {}) do
+                        if it.id == item.id then dest_after = dest_after + it.count end
+                    end
+                    local moved = dest_after - dest_before
+                    if moved > 0 then
+                        windower.add_to_chat(207, 'GSUI: moved ' .. moved .. 'x ' .. item.name .. ' -> ' .. dest)
+                    else
+                        windower.add_to_chat(207, 'GSUI: 0 of ' .. item.name .. ' moved to ' .. dest .. ' -- please stand in your Mog House or at a Nomad/Porter Moogle that has unlocked that bag.')
+                    end
+                end, 1 + move_count * 0.5)
             else
                 ui.set_status('Nothing to move')
             end
-            coroutine.schedule(function()
-                if initialized then refresh_organizer() end
-            end, 1 + move_count * 0.5)
         elseif item.bag_name == dest then
             ui.set_status('Already in ' .. dest)
         else
+            -- Single-item move: snapshot the source slot's count, attempt,
+            -- and verify the slot drained.
+            local src_before = item.count or 1
             bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count)
             ui.set_status(item.name .. ' -> ' .. dest)
-            windower.add_to_chat(207, 'GSUI: Moving ' .. item.name .. ' to ' .. dest)
             coroutine.schedule(function()
-                if initialized then refresh_organizer() end
-            end, 1)
+                if not initialized then return end
+                refresh_organizer()
+                local src_after = 0
+                for _, it in ipairs(_org_all_bag_items[item.bag_name] or {}) do
+                    if it.id == item.id and it.bag_index == item.bag_index then
+                        src_after = it.count
+                        break
+                    end
+                end
+                local moved = src_before - src_after
+                if moved > 0 then
+                    windower.add_to_chat(207, 'GSUI: moved ' .. moved .. 'x ' .. item.name .. ' (' .. item.bag_name .. ' -> ' .. dest .. ')')
+                else
+                    windower.add_to_chat(207, 'GSUI: ' .. item.name .. ' did not move -- please stand in your Mog House or at a Nomad/Porter Moogle that has unlocked ' .. (bag_org.is_mog_bag(dest) and dest or item.bag_name) .. '.')
+                end
+            end, 1.5)
         end
     elseif action.type == 'select' then
         ui.set_status('Selected: ' .. (action.item.name or '?'))
@@ -1229,19 +1262,19 @@ local function handle_mouse_up(mx, my)
                 update_custom_stats()
                 windower.add_to_chat(207, 'GSUI: ' .. drop.item.name .. ' assigned to ' .. drop.slot)
             elseif drop.type == 'bag' then
-                -- Dropped on a bag in organizer
+                -- Dropped on a bag in organizer.
+                -- Same attempt-then-verify pattern as action.type=='bag'
+                -- (see comment up there for rationale).
                 local dest = drop.bag_name
                 local item = drop.item
-                if not bag_org.is_bag_currently_accessible(dest)
-                   or not bag_org.is_bag_currently_accessible(item.bag_name) then
-                    local blocked = not bag_org.is_bag_currently_accessible(dest) and dest or item.bag_name
-                    ui.set_status('Bag not accessible: ' .. blocked)
-                    windower.add_to_chat(207, 'GSUI: ' .. blocked .. ' is not accessible from your current location. Stand in your Mog House or at a Nomad/Porter Moogle that has unlocked it.')
-                elseif ui.get_org_view() == 'scattered' and _org_all_bag_items then
-                    -- Consolidate: move all copies from every bag into destination
+                if ui.get_org_view() == 'scattered' and _org_all_bag_items then
+                    local dest_before = 0
+                    for _, it in ipairs(_org_all_bag_items[dest] or {}) do
+                        if it.id == item.id then dest_before = dest_before + it.count end
+                    end
                     local move_count = 0
                     for bag_name, items in pairs(_org_all_bag_items) do
-                        if bag_name ~= dest and bag_org.is_bag_currently_accessible(bag_name) then
+                        if bag_name ~= dest then
                             for _, bag_item in ipairs(items) do
                                 if bag_item.id == item.id then
                                     bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count)
@@ -1252,22 +1285,47 @@ local function handle_mouse_up(mx, my)
                     end
                     if move_count > 0 then
                         ui.set_status('Consolidating ' .. item.name .. ' -> ' .. dest)
-                        windower.add_to_chat(207, 'GSUI: Consolidating ' .. item.name .. ' to ' .. dest .. ' (' .. move_count .. ' moves)')
+                        coroutine.schedule(function()
+                            if not initialized then return end
+                            refresh_organizer()
+                            local dest_after = 0
+                            for _, it in ipairs(_org_all_bag_items[dest] or {}) do
+                                if it.id == item.id then dest_after = dest_after + it.count end
+                            end
+                            local moved = dest_after - dest_before
+                            if moved > 0 then
+                                windower.add_to_chat(207, 'GSUI: moved ' .. moved .. 'x ' .. item.name .. ' -> ' .. dest)
+                            else
+                                windower.add_to_chat(207, 'GSUI: 0 of ' .. item.name .. ' moved to ' .. dest .. ' -- please stand in your Mog House or at a Nomad/Porter Moogle that has unlocked that bag.')
+                            end
+                        end, 1 + move_count * 0.5)
                     else
                         ui.set_status('Nothing to move')
                     end
-                    coroutine.schedule(function()
-                        if initialized then refresh_organizer() end
-                    end, 1 + move_count * 0.5)
                 elseif item.bag_name == dest then
                     ui.set_status('Already in ' .. dest)
                 else
+                    -- Same attempt-then-verify pattern.
+                    local src_before = item.count or 1
                     bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count)
                     ui.set_status(item.name .. ' -> ' .. dest)
-                    windower.add_to_chat(207, 'GSUI: Moving ' .. item.name .. ' to ' .. dest)
                     coroutine.schedule(function()
-                        if initialized then refresh_organizer() end
-                    end, 1)
+                        if not initialized then return end
+                        refresh_organizer()
+                        local src_after = 0
+                        for _, it in ipairs(_org_all_bag_items[item.bag_name] or {}) do
+                            if it.id == item.id and it.bag_index == item.bag_index then
+                                src_after = it.count
+                                break
+                            end
+                        end
+                        local moved = src_before - src_after
+                        if moved > 0 then
+                            windower.add_to_chat(207, 'GSUI: moved ' .. moved .. 'x ' .. item.name .. ' (' .. item.bag_name .. ' -> ' .. dest .. ')')
+                        else
+                            windower.add_to_chat(207, 'GSUI: ' .. item.name .. ' did not move -- please stand in your Mog House or at a Nomad/Porter Moogle that has unlocked ' .. (bag_org.is_mog_bag(dest) and dest or item.bag_name) .. '.')
+                        end
+                    end, 1.5)
                 end
             end
         end
@@ -1706,31 +1764,59 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                 local count = ui.selection_count()
                 ui.set_status((now_selected and 'Selected: ' or 'Deselected: ') .. hit.item.name .. ' (' .. count .. ')')
             elseif hit and hit.type == 'org_bag' and hit.bag_name then
-                -- Move every selected item into this bag
+                -- Move every selected item into this bag.
+                -- Same attempt-then-verify pattern (no preflight, diff
+                -- after) -- each queued move is tracked by its source
+                -- slot's pre-count so we can name what actually landed.
                 local dest = hit.bag_name
                 local selected = ui.get_selected_items()
                 if #selected == 0 then
                     ui.set_status('No items selected. Right-click items first.')
-                elseif not bag_org.is_bag_currently_accessible(dest) then
-                    ui.set_status('Bag not accessible: ' .. dest)
-                    windower.add_to_chat(207, 'GSUI: ' .. dest .. ' is not accessible from your current location. Stand in your Mog House or at a Nomad/Porter Moogle that has unlocked it.')
                 else
+                    -- Snapshot each selected item's pre-count keyed by
+                    -- (bag, slot) so we can diff per-item after.
+                    local snapshots = {}
                     local queued, skipped = 0, 0
                     for _, item in ipairs(selected) do
                         if item.bag_name == dest then
                             skipped = skipped + 1
-                        elseif not bag_org.is_bag_currently_accessible(item.bag_name) then
-                            skipped = skipped + 1
                         else
+                            snapshots[#snapshots+1] = {
+                                bag = item.bag_name, slot = item.bag_index,
+                                id = item.id, name = item.name,
+                                pre = item.count or 1,
+                            }
                             bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count)
                             queued = queued + 1
                         end
                     end
                     ui.clear_selection()
                     ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
-                    windower.add_to_chat(207, 'GSUI: Moving ' .. queued .. ' items to ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
                     coroutine.schedule(function()
-                        if initialized then refresh_organizer() end
+                        if not initialized then return end
+                        refresh_organizer()
+                        local moved_lines, unmoved_count = {}, 0
+                        for _, snap in ipairs(snapshots) do
+                            local post = 0
+                            for _, it in ipairs(_org_all_bag_items[snap.bag] or {}) do
+                                if it.id == snap.id and it.bag_index == snap.slot then
+                                    post = it.count
+                                    break
+                                end
+                            end
+                            local moved = snap.pre - post
+                            if moved > 0 then
+                                moved_lines[#moved_lines+1] = moved .. 'x ' .. snap.name
+                            else
+                                unmoved_count = unmoved_count + 1
+                            end
+                        end
+                        if #moved_lines > 0 then
+                            windower.add_to_chat(207, 'GSUI: moved -> ' .. dest .. ': ' .. table.concat(moved_lines, ', '))
+                        end
+                        if unmoved_count > 0 then
+                            windower.add_to_chat(207, 'GSUI: ' .. unmoved_count .. ' item(s) did not move -- please stand in your Mog House or at a Nomad/Porter Moogle that has unlocked the bag.')
+                        end
                     end, 1 + queued * 0.5)
                 end
             end
