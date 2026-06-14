@@ -164,6 +164,64 @@ function controller.resolve_value(raw)
     return s
 end
 
+-- Pull the augments list out of a raw slot-value source string. Returns
+-- a list of trimmed augment-line strings, or nil if the slot didn't
+-- declare any augments (bare-name form like `back = "Alaunus's Cape"`
+-- or a local-var reference). Used by gsui to disambiguate same-named
+-- inventory items at load time -- without this, "Alaunus's Cape" with
+-- three augment variants in inventory would match the first one the
+-- inventory scan returned, which had nothing to do with what the lua
+-- specified. Symptom: click a set, see a different cape than the lua
+-- declares + no augments in the tooltip even though the inventory item
+-- hover shows them.
+--
+-- Handles:
+--   { name="X", augments={'a','b','c'} }
+--   { name='X', augments={"a","b","c"} }
+--   var.field   -- looks up state.locals[var][field].augments
+-- Whitespace between augments and across the brace is tolerated.
+function controller.resolve_augments(raw)
+    if not raw then return nil end
+    if type(raw) == 'table' then return raw.augments end
+    if type(raw) ~= 'string' then return nil end
+    local s = raw:gsub('^%s+', ''):gsub('%s+$', '')
+
+    -- 1. Inline table with augments={...} field
+    local body = s:match('augments%s*=%s*{(.-)}')
+    if body then
+        local augs = {}
+        -- Match `'...'` or `"..."` and grab the contents. The first
+        -- capture group is the quote char (we use it to know which
+        -- escape to unescape), the second is the literal string body.
+        for q, content in body:gmatch('(["\'])(.-)%1') do
+            -- q is the quote char (', "); content is the augment line.
+            -- Unescape only the embedded same-quote: GS writer emits
+            -- `\'` inside single-quoted strings.
+            local clean = content
+            if q == "'" then clean = clean:gsub("\\'", "'") end
+            if q == '"' then clean = clean:gsub('\\"', '"') end
+            augs[#augs + 1] = clean
+        end
+        if #augs > 0 then return augs end
+        return nil
+    end
+
+    -- 2. Local-var reference (e.g. `alaunus_tp`) -- look up the augments
+    -- field on the local table. Handles both `varname` and `var.field`.
+    local var = s:match('^([%w_]+)$')
+    if var and state.locals and state.locals[var] then
+        local v = state.locals[var]
+        if type(v) == 'table' and v.augments then return v.augments end
+    end
+    local var2, field = s:match('^([%w_]+)%.([%w_]+)$')
+    if var2 and field and state.locals and state.locals[var2] then
+        local v = state.locals[var2][field]
+        if type(v) == 'table' and v.augments then return v.augments end
+    end
+
+    return nil
+end
+
 -- =============================================================================
 -- Load / refresh
 -- =============================================================================

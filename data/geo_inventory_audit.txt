@@ -1,0 +1,217 @@
+PLD-equippable inventory audit
+  Source: Kalitzo 2026-06-08 18-14-28.lua
+  Stats:  item_stats.json  (10693 items)
+  Jobs:   item_jobs.json   (14738 items)
+
+=== MAIN (21 items) ===
+  Abyssbringer  -- (no stats in db)
+  Ash Staff  -- HP=2, MP=2
+  Baqil Staff  -- (no stats in db)
+  Beryllium Mace  -- ACC=27, ADDS_WEAPONSKILL=168, MND=7, STR=7, WSACC=15
+  Blurred Staff  -- INT=12, MACC=20, MATT=28, MND=12
+  Bolelabunga  -- INT=6, MAGIC_DAMAGE=124, MATT=16, MND=6, REFRESH=1, REGEN=1, REGEN_MULTIPLIER=10
+  Dowser's Wand  -- (no stats in db)
+  Excalipoor  -- (no stats in db)
+  Gada  -- (no stats in db)
+  Grioavolr  AUG[Pet: "Subtle Blow"+3 | Pet: MND+12 | Pet: Mag. Acc.+22 | Pet: "Mag.Atk.Bns."+25]  -- CONSERVE_MP=5, FASTCAST=4, INT=19, MACC=14, MAGIC_DAMAGE=217, MATT=30, MND=19
+  Heartstopper  -- (no stats in db)
+  Iridal Staff  -- AGI=4, CHARM_CHANCE=10, CHR=4, CURE_POTENCY=10, DARK_AFFINITY_PERP=2, DARK_MEVA=15, DARK_STAFF_BONUS=2, DEX=4, EARTH_AFFINITY_PERP=2, EARTH_MEVA=15, EARTH_STAFF_BONUS=2, FIRE_AFFINITY_PERP=2, FIRE_MEVA=15, FIRE_STAFF_BONUS=2, ICE_AFFINITY_PERP=2, ICE_MEVA=15, ICE_STAFF_BONUS=2, INT=4, IRIDESCENCE=1, LIGHT_AFFINITY_PERP=2, LIGHT_MEVA=15, LIGHT_STAFF_BONUS=2, MND=4, MPHEAL=10, STR=4, THUNDER_AFFINITY_PERP=2, THUNDER_MEVA=15, THUNDER_STAFF_BONUS=2, VIT=4, WATER_AFFINITY_PERP=2, WATER_MEVA=15, WATER_STAFF_BONUS=2, WIND_AFFINITY_PERP=2, WIND_MEVA=15, WIND_STAFF_BONUS=2
+  Kaja Rod  -- ACC=35, ADDS_WEAPONSKILL=169, CHR=10, INT=10, MACC=35, MAGIC_DAMAGE=232, MATT=18, MND=10
+  Kitty Rod  -- (no stats in db)
+  Lady Bell  -- (no stats in db)
+  Makhila  -- (no stats in db)
+  Nibiru Cudgel  AUG[MP+50 | INT+10 | "Mag.Atk.Bns."+15]  -- (no stats in db)
+  Nibiru Cudgel  -- (no stats in db)
+  Rusty Dagger  -- (no stats in db)
+  Solstice  AUG[INT+15 | "Mag.Atk.Bns."+10 | "Refresh"+1]  -- (no stats in db)
+  Terra's Staff  -- DMGPHYS=-2000, DMGRANGE=-2000, EARTH_AFFINITY_PERP=3, EARTH_STAFF_BONUS=3, THUNDER_AFFINITY_PERP=-3, THUNDER_MEVA=20, THUNDER_STAFF_BONUS=-3, VIT=5
+
+=== SUB (8 items) ===
+  Culminus  -- DEF=60, HP=57, MAGIC_DAMAGE=75, MATT=20, MP=64, SHIELD=107, SPELLINTERRUPT=10
+  Elan Strap +1  -- MATT=7
+  Elementa Grip  -- ELEM=3
+  Giuoco Grip  -- (no stats in db)
+  Rigorous Grip +1  -- ACC=3, ATT=15, STR=4
+  Sors Shield  -- CURE_CAST_TIME=5, CURE_POTENCY=3, DEF=20, ENMITY=-5, HP=10, MP=54, SHIELD=48
+  Vox Grip  -- SUMMONING=3
+  Willpower Grip  -- (no stats in db)
+
+=== RANGE (1 items) ===
+  Dunna  -- GEOMANCY_BONUS=5, HANDBELL=18
+
+=== AMMO (5 items) ===
+  Amar Cluster  -- ACC=10, COUNTER=2, EVA=10, STR=2
+  Esper Stone +1  -- ENHANCES_ELEMENTAL_SIPHON=20
+  Hydrocera  -- MACC=6, MND=3, MP=20
+  Sapience Orb  -- ENMITY=2, FASTCAST=2
+  Seraphic Ampulla  -- INT=3, MND=3, OCCULT_ACUMEN=7
+
+=== HEAD (12 items) ===
+  Artsieq Hat  -- AGI=14, CHR=19, CONSERVE_MP=3, DEF=94, DEX=14, EVA=36, HASTE_GEAR=600, HP=36, INT=19, MDEF=5, MEVA=75, MND=19, MP=62, STR=14, VIT=14
+  Azimuth Hood  -- (no stats in db)
+  Geomancy Galero  -- AGI=10, CARDINAL_CHANT_BONUS=25, CHR=14, DEF=70, DEX=10, ELEM=15, EVA=16, HASTE_GEAR=500, HP=17, INT=19, MDEF=2, MEVA=51, MND=19, MP=40, STR=10, VIT=10
+  Glory Crown  -- (no stats in db)
+  Helios Band  AUG[Mag. Acc.+20 "Mag.Atk.Bns."+20]  -- AGI=17, CHR=22, CONSERVE_MP=4, DEF=95, DEX=17, EVA=36, HASTE_GEAR=600, HP=36, INT=21, MDEF=5, MEVA=75, MND=22, MP=32, STR=17, VIT=17
+  Hike Khat  -- (no stats in db)
+  Merlinic Hood  AUG["Mag.Atk.Bns."+29 | "Occult Acumen"+5 | MND+5 | Mag. Acc.+9]  -- AGI=6, CHR=26, DEF=95, DEX=15, EVA=33, FASTCAST=8, HASTE_GEAR=600, HP=22, INT=29, MACC=15, MATT=10, MDEF=6, MEVA=86, MND=28, MP=56, STR=15, VIT=15
+  Nyame Helm  AUG[Path: B]  -- ACC=40, AGI=23, ATT=30, CHR=24, DEF=156, DEX=25, DMG=-700, EVA=91, HASTE_GEAR=600, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=123, MND=26, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=26, VIT=24
+  Psycloth Tiara  AUG[Pet: Attack+21 | Pet: "Mag.Atk.Bns."+11 | Pet: Enmity+5]  -- (no stats in db)
+  Redeyes  -- (no stats in db)
+  Revealer's Crown  -- (no stats in db)
+  Vanya Hood  AUG[Healing magic skill +20 | "Cure" spellcasting time -7% | Magic dmg. taken -3]  -- (no stats in db)
+
+=== NECK (11 items) ===
+  Asperity Necklace  -- ATT=8, DOUBLE_ATTACK=2, STORETP=3
+  Atzintli Necklace  -- ENMITY=5, MACC=2, MATT=5
+  Deceiver's Torque  -- (no stats in db)
+  Deino Collar  -- (no stats in db)
+  Deviant Necklace  -- ACC=5, CONSERVE_MP=2, ENMITY=-5, MATT=10
+  Fotia Gorget  -- ANY_FTP_BONUS=25, WS_NO_DEPLETE=1
+  Lissome Necklace  -- ACC=8, DOUBLE_ATTACK=100, REGEN=1, STORETP=4
+  Marked Gorget  -- (no stats in db)
+  Nodens Gorget  -- CURE_POTENCY=5, HP=25, MP=25, STONESKIN_BONUS_HP=30
+  Phalaina Locket  -- CURE_POTENCY=4, CURE_POTENCY_RCVD=4, MND=3
+  Sanctity Necklace  -- ACC=10, ATT=10, DEF=14, HP=35, MACC=50, MATT=50, MP=35, RACC=10, RATT=10, REGEN=2
+
+=== EAR (25 items) ===
+  Alabaster Earring  -- (no stats in db)
+  Assuage Earring  -- (no stats in db)
+  Bladeborn Earring  -- ATT=8, STORETP=1
+  Brutal Earring  -- DOUBLE_ATTACK=5, STORETP=1
+  Calamitous Earring  -- CONSERVE_MP=4, HP=15, MP=15, WIND_MEVA=10
+  Cessance Earring  -- ACC=6, DOUBLE_ATTACK=3, STORETP=3
+  Eabani Earring  -- DUAL_WIELD=4, EVA=15, HP=45, MEVA=8
+  Evans Earring  -- BP_DELAY=2, MP=50, PERPETUATION_REDUCTION=2
+  Friomisi Earring  -- ENMITY=2, MATT=10
+  Genmei Earring  -- COUNTER=1, DEF=5, DMGPHYS=-200, DMGRANGE=-200, VIT=2
+  Halasz Earring  -- ENMITY=-3, MAGIC_CRITHITRATE=14, MP=45, SPELLINTERRUPT=5
+  Heartseeker Earring  -- ACC=8, SUBTLE_BLOW=1
+  Hecate's Earring  -- MAGIC_CRITHITRATE=3, MATT=6
+  Hermetic Earring  -- MACC=7, MATT=3
+  Kyrene's Earring  -- (no stats in db)
+  Loquac. Earring  -- FASTCAST=2, MP=30
+  Mache Earring  -- ACC=7, DEX=5, DOUBLE_ATTACK=1, MARTIAL_ARTS=10
+  Mache Earring +1  -- ACC=10, DEX=8, DOUBLE_ATTACK=2, MARTIAL_ARTS=13
+  Malignance Earring  -- FASTCAST=4, INT=8, MACC=10, MATT=8, MND=8
+  Mendi. Earring  -- CONSERVE_MP=2, CURE_CAST_TIME=5, CURE_POTENCY=5, DEF=4, MP=30
+  Moonshade Earring  AUG["Mag.Atk.Bns."+4 | Latent effect: "Refresh"+1]  -- (no stats in db)
+  Odnowa Earring  -- (no stats in db)
+  Reraise Earring  -- ATT=-2, EVA=2
+  Steelflash Earring  -- ACC=8, STORETP=1
+  Suppanomimi  -- AGI=2, DUAL_WIELD=5, SWORD=5
+
+=== BODY (20 items) ===
+  Alliance Shirt  -- (no stats in db)
+  Amalric Doublet  AUG[MP+60 | Mag. Acc.+15 | "Mag.Atk.Bns."+15]  -- AGI=16, CHR=29, CONSERVE_MP=6, DEF=125, DEX=19, EVA=38, HASTE_GEAR=300, HP=45, INT=38, MACC=23, MAGIC_CRIT_DMG_INCREASE=8, MATT=23, MDEF=7, MEVA=91, MND=30, MP=73, REFRESH=2, STR=16, VIT=16
+  Azimuth Coat  -- (no stats in db)
+  Bagua Tunic  AUG[Enhances "Bolster" effect]  -- AGI=13, CHR=18, DEF=93, DEX=13, EVA=19, GEOMANCY=10, HASTE_GEAR=200, HP=65, INT=18, MATT=20, MDEF=3, MEVA=54, MND=18, MP=89, STR=13, VIT=13
+  Bokwus Robe  -- ACC=17, AGI=7, CHR=13, DEF=89, DEX=7, EVA=21, HP=28, INT=13, MATT=13, MDEF=3, MEVA=57, MND=13, MP=50, REFRESH=2, STR=7, VIT=7
+  Councilor's Garb  -- (no stats in db)
+  Federation Aketon  -- DEF=1
+  Gambison  -- DEF=23
+  Geomancy Tunic  -- AGI=13, CHR=18, DARK=15, DEF=91, DEX=13, EVA=19, HASTE_GEAR=200, HP=25, INT=18, LIFE_CYCLE_EFFECT=10, MDEF=3, MEVA=54, MND=18, MP=75, REFRESH=2, STR=13, VIT=13
+  Gyve Doublet  -- AGI=40, CHR=33, CONSERVE_MP=6, DEF=133, DEX=19, EVA=41, HASTE_GEAR=300, HP=100, INT=39, MATT=42, MDEF=6, MEVA=80, MND=33, MP=129, STR=19, VIT=19
+  Kingdom Aketon  -- DEF=1
+  Merlinic Jubbah  AUG[Mag. Acc.+20 | Mag. crit. hit dmg. +7% | VIT+12 | "Mag.Atk.Bns."+14]  -- (no stats in db)
+  Nyame Mail  AUG[Path: B]  -- ACC=40, AGI=33, ATT=30, CHR=35, DEF=189, DEX=24, DMG=-900, EVA=102, HASTE_GEAR=300, HP=136, INT=42, MACC=40, MAGIC_BURST_BONUS_CAPPED=7, MATT=30, MDEF=8, MEVA=139, MND=37, MP=88, RACC=40, RATT=30, SKILLCHAINDMG=700, STR=35, VIT=35
+  Pluviale  -- DEF=45, HP=100, MP=100, REFRESH=1, REGEN=1
+  Psycloth Vest  AUG[Mag. Acc.+10 | Spell interruption rate down +15% | MND+7]  -- (no stats in db)
+  Republic Aketon  -- DEF=1
+  Shango Robe  -- (no stats in db)
+  Vanir Cotehardie  -- AGI=21, CHR=29, DEF=120, DEX=21, EVA=41, FASTCAST=5, HASTE_GEAR=300, HP=54, INT=36, MACC=18, MATT=18, MDEF=6, MEVA=80, MND=36, MP=59, STR=21, VIT=21
+  Vanya Robe  AUG[Healing magic skill +20 | "Cure" spellcasting time -7% | Magic dmg. taken -3]  -- (no stats in db)
+  Vanya Robe  AUG[MND+10 | Spell interruption rate down +15% | "Conserve MP"+6]  -- (no stats in db)
+
+=== HANDS (11 items) ===
+  Councilor's Cuffs  -- (no stats in db)
+  Geomancy Mitaines  -- AGI=3, CHR=12, DEF=61, DEX=17, DMGPHYS=-100, DMGRANGE=-100, EVA=10, GEOMANCY=15, HASTE_GEAR=300, HP=35, INT=12, MDEF=1, MEVA=25, MND=21, MP=37, STR=4, VIT=16
+  Helios Gloves  AUG[Mag. Acc.+18 "Mag.Atk.Bns."+18]  -- AGI=2, CHR=16, DEF=80, DEX=25, EVA=22, HASTE_GEAR=300, HP=22, INT=17, MATT=10, MDEF=3, MEVA=37, MND=30, MP=44, STR=3, VIT=22
+  Jhakri Cuffs +2  -- (no stats in db)
+  Merlinic Dastanas  AUG[Pet: Accuracy+20 Pet: Rng. Acc.+20 | Blood Pact Dmg.+3 | Pet: STR+4 | Pet: Mag. Acc.+1 | Pet: "Mag.Atk.Bns."+1]  -- (no stats in db)
+  Merlinic Dastanas  AUG[Pet: Attack+29 Pet: Rng.Atk.+29 | Blood Pact Dmg.+7 | Pet: Mag. Acc.+13]  -- (no stats in db)
+  Merlinic Dastanas  AUG[Blood Pact Dmg.+10 | Pet: STR+1 | Pet: Mag. Acc.+14 | Pet: "Mag.Atk.Bns."+15]  -- (no stats in db)
+  Merlinic Dastanas  AUG[Pet: Accuracy+29 Pet: Rng. Acc.+29 | Blood Pact Dmg.+9]  -- (no stats in db)
+  Nyame Gauntlets  AUG[Path: B]  -- ACC=40, AGI=12, ATT=30, CHR=24, DEF=142, DEX=42, DMG=-700, EVA=80, HASTE_GEAR=300, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=4, MEVA=112, MND=40, MP=73, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=17, VIT=39
+  Vanya Cuffs  AUG[Healing magic skill +20 | "Cure" spellcasting time -7% | Magic dmg. taken -3]  -- (no stats in db)
+  Weath. Cuffs +1  -- AGI=5, CHR=19, CURE_POTENCY=9, DEF=83, DEX=28, EVA=22, HASTE_GEAR=300, HP=37, INT=19, MDEF=3, MEVA=37, MND=33, MP=29, STR=6, VIT=25
+
+=== RING (31 items) ===
+  Acumen Ring  -- INT=2, MATT=4
+  Apate Ring  -- (no stats in db)
+  Asklepian Ring  -- CURE_POTENCY_RCVD=3
+  Balrahn's Ring  -- MACC=4
+  Beetle Ring  -- ACC=-3, RACC=3
+  Begrudging Ring  -- (no stats in db)
+  Caliber Ring  -- (no stats in db)
+  Chirich Ring +1  -- ACC=10, REGEN=2, STORETP=6, SUBTLE_BLOW=10
+  Dcl.Grd. Ring  -- (no stats in db)
+  Dim. Ring (Dem)  -- (no stats in db)
+  Dim. Ring (Holla)  -- (no stats in db)
+  Dim. Ring (Mea)  -- (no stats in db)
+  Echad Ring  -- (no stats in db)
+  Fervor Ring  -- SUMMONING=4
+  Hetairoi Ring  -- CRITHITRATE=1, TRIPLE_ATTACK=2, TRIPLE_ATTACK_DMG=5
+  Jhakri Ring  -- (no stats in db)
+  Jubilee Ring  -- (no stats in db)
+  Mercenary's Ring  -- VIT=5
+  Patricius Ring  -- ACC=7, DMGPHYS=-500, DMGRANGE=-500
+  Petrov Ring  -- AGI=3, DEX=3, DOUBLE_ATTACK=1, ENMITY=4, STORETP=5, STR=3, VIT=3
+  Prolix Ring  -- ENMITY=-3, FASTCAST=2, MP=20
+  Purity Ring  -- (no stats in db)
+  Rajas Ring  -- DEX=2, STORETP=5, STR=2, SUBTLE_BLOW=5
+  Shiva Ring  -- ICE_MEVA=15, INT=8
+  Tavnazian Ring  -- (no stats in db)
+  Thurandaut Ring  -- (no stats in db)
+  Varar Ring  -- ACC=7
+  Varar Ring +1  -- ACC=10
+  Volunteer's Ring  -- MDEF=3
+  Warden's Ring  -- CRITICAL_HIT_EVASION=5, DEATHRES=10, DMGPHYS=-300, DMGRANGE=-300
+  Warp Ring  -- (no stats in db)
+
+=== BACK (8 items) ===
+  Aptitude Mantle +1  -- CAPACITY_BONUS=30, DEF=14
+  Lifestream Cape  -- DEF=13, ENFEEBLE=10, FASTCAST=7, HP=50, MP=50
+  Nexus Cape  -- (no stats in db)
+  Oretania's Cape  -- CURE_POTENCY=4, DEF=7, HP=20
+  Penetrating Cape  -- ATT=20, DEF=17
+  Seshaw Cape  -- CONSERVE_MP=3, DEF=16, MAGIC_BURST_BONUS_CAPPED=5, MATT=11
+  Solemnity Cape  -- (no stats in db)
+  Swith Cape  -- CHR=5, DEF=8, FASTCAST=3, HP=-20, MND=5
+
+=== WAIST (9 items) ===
+  Eschan Stone  -- ACC=15, ATT=15, DEF=9, HP=20, MACC=7, MATT=7, MP=20, RACC=15, RATT=15
+  Fotia Belt  -- ANY_FTP_BONUS=25, DEF=7, WS_NO_DEPLETE=1
+  Fucho-no-Obi  -- DEF=10, ENH_DRAIN_ASPIR=8, MP=30
+  Luminary Sash  -- CONSERVE_MP=4, DEF=12, MACC=10, MND=10, MP=45
+  Olympus Sash  -- DEF=5, ELEM=5, ENHANCE=5
+  Siegel Sash  -- DEF=5, STONESKIN_BONUS_HP=20
+  Slipor Sash  -- DMGMAGIC=-300, MDEF=3
+  Windbuffet Belt +1  -- ACC=2, DEF=9, QUAD_ATTACK=2, TRIPLE_ATTACK=2
+  Witful Belt  -- DEF=8, FASTCAST=3, HASTE_GEAR=300, QUICK_MAGIC=3
+
+=== LEGS (10 items) ===
+  Amalric Slops  AUG[MP+60 | Mag. Acc.+15 | "Mag.Atk.Bns."+15]  -- AGI=14, CHR=19, DEF=105, ELEMENTAL_MAGIC_RECAST=-7, EVA=24, HASTE_GEAR=500, HP=34, INT=40, MATT=30, MDEF=6, MEVA=118, MND=25, MP=100, SKILLCHAINDMG=800, STR=19, VIT=6
+  Assid. Pants +1  -- AGI=17, CHR=19, DEF=105, ENMITY=-6, EVA=27, HASTE_GEAR=500, HP=43, INT=36, MDEF=6, MEVA=107, MND=26, MP=29, STR=25, VIT=12
+  Brais  -- DEF=7
+  Doyen Pants  -- AGI=19, CHR=29, CURE_CAST_TIME=15, DEF=108, EVA=38, HASTE_GEAR=500, HP=43, INT=34, MDEF=6, MEVA=107, MND=29, MP=32, SONG_SPELLCASTING_TIME=6, STR=23, VIT=10
+  Geomancy Pants  -- AGI=11, CHR=12, DEF=78, EVA=12, FASTCAST=10, HASTE_GEAR=400, HP=55, INT=21, MDEF=3, MEVA=73, MND=15, MP=59, SPELLINTERRUPT=20, STR=16, VIT=8
+  Merlinic Shalwar  AUG[Magic Damage +12 | DEX+10 | Mag. Acc.+5 | "Mag.Atk.Bns."+9]  -- (no stats in db)
+  Nyame Flanchard  AUG[Path: B]  -- ACC=40, AGI=34, ATT=30, CHR=24, DEF=169, DMG=-800, EVA=85, HASTE_GEAR=500, HP=114, INT=44, MACC=40, MAGIC_BURST_BONUS_CAPPED=6, MATT=30, MDEF=6, MEVA=150, MND=32, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=600, STR=43, VIT=30
+  Psycloth Lappas  AUG[MP+80 | Mag. Acc.+15 | "Fast Cast"+7]  -- (no stats in db)
+  Vanya Slops  AUG[Healing magic skill +20 | "Cure" spellcasting time -7% | Magic dmg. taken -3]  -- (no stats in db)
+  Vanya Slops  -- (no stats in db)
+
+=== FEET (13 items) ===
+  Amalric Nails  AUG[Mag. Acc.+15 | "Mag.Atk.Bns."+15 | "Conserve MP"+6]  -- AGI=26, CHR=33, DEF=66, DEX=6, EVA=60, FASTCAST=5, HASTE_GEAR=300, HP=4, INT=21, MAGIC_DAMAGE=10, MATT=22, MDEF=6, MEVA=118, MND=20, MP=26, SPELLINTERRUPT=15, STR=6, VIT=6
+  Chelona Boots  -- AGI=-6, CHR=6, DEF=23, DEX=-6, FASTCAST=4, INT=6, MND=6, MP=35, MPHEAL=5, STR=-6, VIT=-6
+  Desert Boots  -- AGI=1, DEF=11, HP=10
+  Gaiters  -- DEF=3
+  Garrison Boots  -- DEF=4, INT=1, MND=1
+  Geomancy Sandals  -- AGI=21, CHR=21, DEF=48, DEX=7, EVA=25, HASTE_GEAR=300, HP=6, INT=11, MDEF=2, MEVA=73, MND=12, MOVE_SPEED_GEAR_BONUS=12, MP=37, STR=6, VIT=6
+  Herald's Gaiters  -- DEF=16, EVA=8, MOVE_SPEED_GEAR_BONUS=12, MP=12
+  Jhakri Pigaches +1  -- ACC=36, AGI=26, ATT=36, CHR=34, DEF=57, DEX=25, EVA=41, INT=30, MACC=36, MAGIC_BURST_BONUS_CAPPED=5, MATT=36, MDEF=4, MEVA=69, MND=21, STR=22, VIT=3
+  Merlinic Crackows  AUG[STR+2 | "Mag.Atk.Bns."+13 | Damage taken-1% | Accuracy+5 Attack+5 | Mag. Acc.+15 "Mag.Atk.Bns."+15]  -- AGI=26, CHR=35, CONSERVE_MP=4, DEF=67, DEX=6, ENH_DRAIN_ASPIR=7, EVA=60, FASTCAST=5, HASTE_GEAR=300, HP=4, INT=24, MATT=15, MDEF=6, MEVA=118, MND=23, MP=20, STR=6, VIT=6
+  Nyame Sollerets  -- ACC=40, AGI=46, ATT=30, CHR=38, DEF=122, DEX=26, DMG=-700, EVA=119, HASTE_GEAR=300, HP=68, INT=25, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=150, MND=26, MP=44, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=23, VIT=24
+  Tutyr Sabots  -- AGI=33, CHR=34, DEF=70, DEX=11, ELEMENTAL_MAGIC_RECAST=-7, ENMITY=-7, EVA=55, HASTE_GEAR=300, HP=13, INT=22, MATT=23, MDEF=5, MEVA=107, MND=19, MP=14, STR=10, VIT=10
+  Vanya Clogs  AUG[Healing magic skill +20 | "Cure" spellcasting time -7% | Magic dmg. taken -3]  -- AGI=33, CHR=34, CURE_POTENCY=5, DEF=70, DEX=11, ENHANCES_CURSNA=5, EVA=55, HASTE_GEAR=300, HEALING=20, HP=13, INT=17, MDEF=5, MEVA=107, MND=19, MP=14, STR=10, VIT=10
+  Vanya Clogs  AUG["Cure" potency +5% | "Cure" spellcasting time -15% | "Conserve MP"+6]  -- AGI=33, CHR=34, CURE_POTENCY=5, DEF=70, DEX=11, ENHANCES_CURSNA=5, EVA=55, HASTE_GEAR=300, HEALING=20, HP=13, INT=17, MDEF=5, MEVA=107, MND=19, MP=14, STR=10, VIT=10

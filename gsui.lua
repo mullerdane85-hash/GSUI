@@ -51,6 +51,7 @@ local extdata = require('extdata')
 -- sub-window so it doesn't tangle with the main GSUI window's tab
 -- system. Toggled via //gsui sets or F5.
 local sets_ctl = require('libs/gear_tree/sets_controller')
+local hotkey = require('libs/hotkey')
 
 -- Settings
 local defaults = {
@@ -58,10 +59,16 @@ local defaults = {
     visible = true,
     game_path = nil,
     kb_mode = false,
-    -- DIK scancode used to toggle the GSUI window. 48 == B (the original
-    -- default; the comment at the keyboard handler below explains the
-    -- history). 0 disables the hotkey entirely; use //gsui togglekey off.
-    toggle_key_dik = 48,
+    -- DIK scancode used to toggle the GSUI window (legacy raw-keyboard
+    -- path). 0 disables the old handler; the modifier-based hotkey below
+    -- is the modern default and avoids macro/chat conflicts.
+    toggle_key_dik = 0,
+    -- Modifier-based hotkey. Goes through Windower's `bind` system, which
+    -- automatically respects FFXI's chat-input state. Default Alt+G.
+    --   modifier = 'alt' | 'ctrl' | 'shift' | 'none' | 'off'
+    --   key      = single character or DIK name (lowercase)
+    hotkey_modifier = 'alt',
+    hotkey_key      = 'g',
 }
 local settings = config.load(defaults)
 config.save(settings)
@@ -898,19 +905,33 @@ local function handle_click(mx, my)
         -- right_ring/range). Without this map, click-loading a set
         -- silently skips every ear/ring/ranged slot.
         local gear_slots_lib = require('libs/gear_tree/gear_slots')
+        -- Normalize an augment string so two semantically-equal copies
+        -- compare equal. The /gs export emitter and the extdata reader
+        -- can produce small drift -- different quote escapes, trailing
+        -- whitespace -- so we strip down to lower-case alphanumerics
+        -- plus the +/- digits that actually carry the stat value. Same
+        -- approach the GSUI Equip Now writer uses for /equip matching.
+        local function _augnorm(s)
+            return (s or ''):lower()
+                :gsub('%s+', '')
+                :gsub('["\']', '')
+        end
         for _, entry in ipairs(preview) do
             local slot = gear_slots_lib.canonical(entry.slot)
             local val = entry.value
             local want_name = nil
+            local want_augments = nil   -- list of augment-line strings, or nil
             if type(val) == 'string' then
                 -- The parser stores slot values as raw RHS expressions —
                 -- for set_combine'd sets this is often `vanya.head` or
                 -- `{ name = "Foo", augments = {...} }`. Resolve through
                 -- the local-var table sets_ctl built at open() time so
                 -- references like `vanya.head` turn into "Vanya Hood +1".
-                want_name = sets_ctl.resolve_value(val) or val
+                want_name     = sets_ctl.resolve_value(val) or val
+                want_augments = sets_ctl.resolve_augments(val)
             elseif type(val) == 'table' then
-                want_name = val.name
+                want_name     = val.name
+                want_augments = val.augments
             end
             if want_name then
                 local item_info = nil
@@ -921,13 +942,52 @@ local function handle_click(mx, my)
                 -- like crazy" bug. With ~10k res.items entries, hoisting
                 -- this cut the inner work by ~10,000x.
                 local want_id = _resolve_name_to_id(want_name)
+                -- When the lua slot specifies augments, prefer the
+                -- inventory copy whose extdata-decoded augments match
+                -- the specified set. Without this, "Alaunus's Cape" with
+                -- three augment variants in inventory would silently
+                -- return the first one, and the tooltip would render
+                -- with an arbitrary augment list (or none) regardless
+                -- of what the lua actually declared.
+                local fallback = nil   -- first name/id match without augment scoring
                 for _, it in ipairs(cached_all_items) do
                     if it.name == want_name
                         or (want_id and it.id == want_id) then
-                        item_info = it
-                        break
+                        if not fallback then fallback = it end
+                        if want_augments and #want_augments > 0 then
+                            -- Require every augment specified by the lua
+                            -- to be present (normalized) in the item's
+                            -- extdata. Inventory items without augments
+                            -- (legacy bare-name entries) can never match
+                            -- and fall through to the next candidate.
+                            local it_augs = it.augments or {}
+                            local matched_count = 0
+                            for _, want_a in ipairs(want_augments) do
+                                local wn = _augnorm(want_a)
+                                for _, have_a in ipairs(it_augs) do
+                                    if _augnorm(have_a) == wn then
+                                        matched_count = matched_count + 1
+                                        break
+                                    end
+                                end
+                            end
+                            if matched_count == #want_augments then
+                                item_info = it
+                                break
+                            end
+                        else
+                            -- No augments specified by the lua -- use the
+                            -- first match. This preserves the prior "first
+                            -- of N" behavior for bare-name slot picks.
+                            item_info = it
+                            break
+                        end
                     end
                 end
+                -- Augment-match failed -- fall back to the first
+                -- name/id match so the slot still shows SOMETHING. The
+                -- tooltip will render with whichever variant landed.
+                if not item_info and fallback then item_info = fallback end
                 if item_info then
                     ui.set_equip_slot_item(slot, item_info)
                     set_gen.set_slot(slot, item_info)
@@ -1236,6 +1296,16 @@ end
 
 -- Events
 windower.register_event('load', function()
+    -- Bind the toggle hotkey through Windower's bind system. This respects
+    -- FFXI's chat-input state automatically -- no manual chat_open guard
+    -- needed, and the bare-letter conflict that broke macros is gone.
+    local ok, msg = hotkey.bind('gsui', 'toggle',
+        settings.hotkey_modifier, settings.hotkey_key)
+    if ok then
+        windower.add_to_chat(207, 'GSUI: ' .. msg .. '. //gsui hotkey <alt|ctrl|none|off> <key> to rebind.')
+    else
+        windower.add_to_chat(167, 'GSUI: hotkey bind failed -- ' .. tostring(msg))
+    end
     if windower.ffxi.get_info().logged_in then
         initialize()
     end
@@ -1388,26 +1458,29 @@ deactivate_kb_binds = function()
     windower.send_command('unbind backspace')
 end
 
--- Toggle hotkey for the GSUI main window. Default DIK is 48 (B). User
--- can rebind via //gsui changekey <key> (named, by raw DIK with #N, or
--- 'capture' to press a physical key). The DIK is read from settings on
--- every press so a rebind takes effect live -- no //lua reload.
+-- LEGACY raw-keyboard toggle. The modifier-based hotkey above is the
+-- primary path now. This block stays so an upgrading user with a
+-- pre-existing settings.toggle_key_dik > 0 still gets that key working,
+-- but new installs default toggle_key_dik = 0 (disabled) and use the
+-- libs/hotkey.lua modifier system instead.
 local _capture_pending = false   -- set true by //gsui changekey capture
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     if blocked then return false end
     if not pressed then return false end
-    -- Capture mode: next physical key press becomes the new binding.
+    -- Capture mode: next physical key press becomes the new LEGACY binding.
+    -- Kept for users who want a bare-key hotkey for some reason; the
+    -- modifier-based system is preferred and doesn't go through this path.
     if _capture_pending then
         _capture_pending = false
         settings.toggle_key_dik = dik
         config.save(settings)
         local nm = DIK_DISPLAY[dik] or ('DIK_'..tostring(dik))
-        windower.add_to_chat(207, 'GSUI: toggle key set to ' .. nm
-            .. ' (DIK ' .. tostring(dik) .. ').')
+        windower.add_to_chat(207, 'GSUI: legacy toggle key set to ' .. nm
+            .. ' (DIK ' .. tostring(dik) .. '). Modifier hotkey unaffected.')
         return true
     end
     local bound = settings.toggle_key_dik or 0
-    if bound == 0 then return false end   -- hotkey disabled
+    if bound == 0 then return false end   -- legacy hotkey disabled
     local info = windower.ffxi.get_info()
     if not info or info.chat_open then return false end
     if dik == bound then
@@ -1434,6 +1507,7 @@ end)
 windower.register_event('unload', function()
     deactivate_kb_binds()
     deactivate_fn_binds()
+    hotkey.unbind('gsui')
     if initialized then
         save_position()
         ui.destroy()
@@ -1987,23 +2061,56 @@ windower.register_event('addon command', function(...)
         sync_kb_binds()
         windower.add_to_chat(207, 'GSUI: ' .. (enabled and 'Keyboard' or 'Drag') .. ' mode.')
     elseif cmd == 'changekey' or cmd == 'togglekey' or cmd == 'hotkey' then
-        -- Rebind the GSUI toggle hotkey. Three input modes:
-        --   //gsui changekey               -- echo current binding
-        --   //gsui changekey <name>        -- named key from DIK_NAMES
-        --                                     (a-z, 0-9, F1-F12, "off", ...)
-        --   //gsui changekey #<dik>        -- raw DIK scancode 1..255
-        --   //gsui changekey capture       -- next physical key sets it
-        -- Capture mode handles ANY key on the user's keyboard, including
-        -- multimedia / OEM / region-specific keys we don't know names for.
+        -- Rebind the GSUI toggle hotkey. Two systems:
+        --
+        -- NEW (recommended): modifier-based, uses Windower bind so chat
+        -- and macros work normally. The default since 2026-06.
+        --   //gsui hotkey alt g          -- Alt+G
+        --   //gsui hotkey ctrl j         -- Ctrl+J
+        --   //gsui hotkey shift k        -- Shift+K
+        --   //gsui hotkey none g         -- bare G (conflicts with typing)
+        --   //gsui hotkey alt+g          -- combined form
+        --   //gsui hotkey off            -- disable
+        --
+        -- LEGACY: raw DIK / keyboard event, kept for users with pre-2026
+        -- settings or who want a bare scancode bind. Bare keys fire even
+        -- while typing and break macros -- the modifier path is preferred.
+        --   //gsui changekey <name>      -- named key from DIK_NAMES
+        --   //gsui changekey #<dik>      -- raw DIK scancode 1..255
+        --   //gsui changekey capture     -- next physical key sets it
         if #args == 0 then
+            local mh = hotkey.display(settings.hotkey_modifier, settings.hotkey_key)
             local cur = settings.toggle_key_dik or 0
-            local name = DIK_DISPLAY[cur] or ('DIK_'..tostring(cur))
-            windower.add_to_chat(207, 'GSUI: toggle key is ' .. name
-                .. ' (DIK ' .. tostring(cur) .. ').')
-            windower.add_to_chat(207, '  //gsui changekey <key>     - by name (a-z, F1-F12, off, ...)')
-            windower.add_to_chat(207, '  //gsui changekey #<dik>    - by raw scancode (1-255)')
-            windower.add_to_chat(207, '  //gsui changekey capture   - press the physical key to bind')
-        else
+            local lg  = (cur == 0) and 'OFF' or (DIK_DISPLAY[cur] or ('DIK_'..tostring(cur)))
+            windower.add_to_chat(207, 'GSUI: modifier hotkey = ' .. mh .. ' | legacy DIK = ' .. lg)
+            windower.add_to_chat(207, '  //gsui hotkey <alt|ctrl|shift|none|off> <key>   - modifier hotkey (recommended)')
+            windower.add_to_chat(207, '  //gsui changekey <name|#dik|capture>             - legacy raw-key bind')
+            return
+        end
+        -- Route to modifier-based system if first arg looks like a modifier.
+        local a1 = tostring(args[1]):lower()
+        if a1 == 'alt' or a1 == 'ctrl' or a1 == 'shift' or a1 == 'none'
+            or a1 == 'no' or a1 == 'off' or a1 == 'disable' or a1 == 'disabled'
+            or a1:find('+', 1, true)
+        then
+            local mod, key, err = hotkey.parse_args(args[1], args[2])
+            if err then
+                windower.add_to_chat(167, 'GSUI: ' .. err)
+                return
+            end
+            local ok, msg = hotkey.bind('gsui', 'toggle', mod, key)
+            if ok then
+                settings.hotkey_modifier = mod
+                settings.hotkey_key      = key
+                config.save(settings)
+                windower.add_to_chat(207, 'GSUI: ' .. msg)
+            else
+                windower.add_to_chat(167, 'GSUI: ' .. tostring(msg))
+            end
+            return
+        end
+        -- else: legacy DIK path below
+        do
             local raw = tostring(args[1])
             local key = raw:lower()
             local dik = nil

@@ -673,6 +673,22 @@ local filter_master_list = {
 
 function inventory_scanner.matches_filter(item_info, pattern)
     if not pattern then return true end
+    -- Three pattern shapes are supported:
+    --   string                       -- single Lua pattern, scan desc + augs
+    --   table of strings             -- multiple patterns (OR semantics)
+    --   table { name_set = {a,b,...} } -- match by item NAME against a literal
+    --                                   set. Used by the JA-enhance filters
+    --                                   from libs/ja_enhance.lua because the
+    --                                   underlying bonus is on the base item
+    --                                   tooltip, not in any text we can scan.
+    if type(pattern) == 'table' and pattern.name_set then
+        local target = item_info.name or item_info.english or item_info.en
+        if not target then return false end
+        for _, n in ipairs(pattern.name_set) do
+            if target == n then return true end
+        end
+        return false
+    end
     local patterns = type(pattern) == 'table' and pattern or {pattern}
     for _, pat in ipairs(patterns) do
         if item_info.description and item_info.description:find(pat) then return true end
@@ -735,6 +751,43 @@ function inventory_scanner.find_active_filters(items)
     for ability in pairs(found_abilities) do
         if not seen_names[ability:lower()] then
             table.insert(matched, { name = ability, pattern = escape_pattern(ability) })
+            -- IMPORTANT: also mark this ability as seen so the JA-enhance
+            -- name lookup below doesn't add a second filter for the same JA.
+            -- Without this, an item with both an "Enhances X" augment AND a
+            -- base bonus mapped in ja_enhance.lua (e.g. Bagua Tunic for
+            -- Bolster) shows up TWICE in the filter list.
+            seen_names[ability:lower()] = true
+        end
+    end
+
+    -- JA-enhance via curated name lookup. Catches base relic/empyrean/AF
+    -- bonuses that are real on the in-game tooltip but invisible to the
+    -- description-text scan above because res.items has description = nil.
+    -- See libs/ja_enhance.lua for the source-of-truth table sourced from
+    -- BG-Wiki.
+    local ok_ja, ja_enhance = pcall(require, 'libs/ja_enhance')
+    if ok_ja and type(ja_enhance) == 'table' then
+        -- Build a quick name lookup of owned items for the inner loop.
+        local owned_names = {}
+        for _, item in ipairs(items) do
+            local nm = item.name or item.english or item.en
+            if nm then owned_names[nm] = true end
+        end
+        for ja_name, enhancer_names in pairs(ja_enhance) do
+            -- Skip if a filter with this name is already in the list (the
+            -- aug-text scan above may have hit Bolster/Astral Flow already).
+            if not seen_names[ja_name:lower()] then
+                for _, enhancer in ipairs(enhancer_names) do
+                    if owned_names[enhancer] then
+                        table.insert(matched, {
+                            name = ja_name,
+                            pattern = { name_set = enhancer_names },
+                        })
+                        seen_names[ja_name:lower()] = true
+                        break
+                    end
+                end
+            end
         end
     end
 

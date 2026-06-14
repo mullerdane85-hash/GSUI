@@ -1,0 +1,184 @@
+PLD-equippable inventory audit
+  Source: Kalitzo 2026-06-08 18-14-28.lua
+  Stats:  item_stats.json  (10693 items)
+  Jobs:   item_jobs.json   (14738 items)
+
+=== MAIN (16 items) ===
+  Abyssbringer  -- (no stats in db)
+  Beryllium Mace  -- ACC=27, ADDS_WEAPONSKILL=168, MND=7, STR=7, WSACC=15
+  Blurred Staff  -- INT=12, MACC=20, MATT=28, MND=12
+  Colada  AUG[Crit.hit rate+3 | DEX+13 | Accuracy+17 | Attack+4]  -- ACC=20, FASTCAST=4, MACC=15, MAGIC_DAMAGE=123, MATT=14
+  Colada  AUG["Dbl.Atk."+2 | Accuracy+18 | DMG:+8]  -- ACC=20, FASTCAST=4, MACC=15, MAGIC_DAMAGE=123, MATT=14
+  Excalipoor  -- (no stats in db)
+  Heartstopper  -- (no stats in db)
+  Iridal Staff  -- AGI=4, CHARM_CHANCE=10, CHR=4, CURE_POTENCY=10, DARK_AFFINITY_PERP=2, DARK_MEVA=15, DARK_STAFF_BONUS=2, DEX=4, EARTH_AFFINITY_PERP=2, EARTH_MEVA=15, EARTH_STAFF_BONUS=2, FIRE_AFFINITY_PERP=2, FIRE_MEVA=15, FIRE_STAFF_BONUS=2, ICE_AFFINITY_PERP=2, ICE_MEVA=15, ICE_STAFF_BONUS=2, INT=4, IRIDESCENCE=1, LIGHT_AFFINITY_PERP=2, LIGHT_MEVA=15, LIGHT_STAFF_BONUS=2, MND=4, MPHEAL=10, STR=4, THUNDER_AFFINITY_PERP=2, THUNDER_MEVA=15, THUNDER_STAFF_BONUS=2, VIT=4, WATER_AFFINITY_PERP=2, WATER_MEVA=15, WATER_STAFF_BONUS=2, WIND_AFFINITY_PERP=2, WIND_MEVA=15, WIND_STAFF_BONUS=2
+  Kitty Rod  -- (no stats in db)
+  Lady Bell  -- (no stats in db)
+  Machaera +2  AUG[TP Bonus +1000]  -- (no stats in db)
+  Mercurial Sword  -- (no stats in db)
+  Naegling  -- ACC=40, ATT=30, DEX=15, INT=16, MACC=40, MAGIC_DAMAGE=217, MATT=16, MND=17
+  Rusty Dagger  -- (no stats in db)
+  Tanmogayi  -- (no stats in db)
+  Terra's Staff  -- DMGPHYS=-2000, DMGRANGE=-2000, EARTH_AFFINITY_PERP=3, EARTH_STAFF_BONUS=3, THUNDER_AFFINITY_PERP=-3, THUNDER_MEVA=20, THUNDER_STAFF_BONUS=-3, VIT=5
+
+=== SUB (6 items) ===
+  Elementa Grip  -- ELEM=3
+  Giuoco Grip  -- (no stats in db)
+  Rigorous Grip +1  -- ACC=3, ATT=15, STR=4
+  Sors Shield  -- CURE_CAST_TIME=5, CURE_POTENCY=3, DEF=20, ENMITY=-5, HP=10, MP=54, SHIELD=48
+  Vox Grip  -- SUMMONING=3
+  Willpower Grip  -- (no stats in db)
+
+=== AMMO (5 items) ===
+  Amar Cluster  -- ACC=10, COUNTER=2, EVA=10, STR=2
+  Focal Orb  -- ACC=-10, ATT=10, DOUBLE_ATTACK=2
+  Ginsen  -- ACC=5, ATT=10, STORETP=3
+  Hydrocera  -- MACC=6, MND=3, MP=20
+  Sapience Orb  -- ENMITY=2, FASTCAST=2
+
+=== HEAD (10 items) ===
+  Askar Zucchetto  -- DEF=23, DEX=4, HASTE_GEAR=400, STR=4, VIT=4
+  Carmine Mask  AUG[Accuracy+15 | Mag. Acc.+10 | "Fast Cast"+3]  -- ACC=28, AGI=21, CHR=21, DEF=110, DEX=25, ENFEEBLE=10, ENHANCE=10, EVA=36, FASTCAST=9, HASTE_GEAR=800, HP=38, INT=25, MACC=28, MDEF=2, MEVA=53, MND=21, STR=25, VIT=25
+  Flam. Zucchetto +1  -- ACC=38, AGI=16, CHR=12, DEF=118, DEX=28, EVA=49, HASTE_GEAR=400, HP=80, INT=12, MACC=38, MDEF=3, MEVA=53, MND=12, MP=20, STORETP=5, STR=32, TRIPLE_ATTACK=4, VIT=24
+  Glory Crown  -- (no stats in db)
+  Ma'iitsoh Haube  -- AGI=18, ATTP=33, CHR=17, DEF=113, DEX=24, EVA=33, HASTE_GEAR=700, HP=68, INT=17, MDEF=2, MEVA=43, MND=17, MP=53, STR=28, VIT=20, ZANSHIN=5
+  Nyame Helm  AUG[Path: B]  -- ACC=40, AGI=23, ATT=30, CHR=24, DEF=156, DEX=25, DMG=-700, EVA=91, HASTE_GEAR=600, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=123, MND=26, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=26, VIT=24
+  Perle Salade  -- ATT=7, DEF=37, HASTE_GEAR=300, STR=5, VIT=5
+  Redeyes  -- (no stats in db)
+  Sulevia's Mask +1  -- (no stats in db)
+  Terminal Helm  -- ACC=23, AGI=14, CHR=14, DEF=111, DEX=8, DMGMAGIC=-500, EVA=36, HASTE_GEAR=700, HP=41, INT=16, MAGIC_DAMAGE=15, MATT=15, MDEF=2, MEVA=37, MND=12, MP=29, RACC=23, STR=24, VIT=19
+
+=== NECK (12 items) ===
+  Asperity Necklace  -- ATT=8, DOUBLE_ATTACK=2, STORETP=3
+  Atzintli Necklace  -- ENMITY=5, MACC=2, MATT=5
+  Deceiver's Torque  -- (no stats in db)
+  Defiant Collar  -- ACC=8, SUBTLE_BLOW=3, TRIPLE_ATTACK=1
+  Deino Collar  -- (no stats in db)
+  Deviant Necklace  -- ACC=5, CONSERVE_MP=2, ENMITY=-5, MATT=10
+  Diemer Gorget  -- (no stats in db)
+  Fotia Gorget  -- ANY_FTP_BONUS=25, WS_NO_DEPLETE=1
+  Lissome Necklace  -- ACC=8, DOUBLE_ATTACK=100, REGEN=1, STORETP=4
+  Marked Gorget  -- (no stats in db)
+  Phalaina Locket  -- CURE_POTENCY=4, CURE_POTENCY_RCVD=4, MND=3
+  Sanctity Necklace  -- ACC=10, ATT=10, DEF=14, HP=35, MACC=50, MATT=50, MP=35, RACC=10, RATT=10, REGEN=2
+
+=== EAR (25 items) ===
+  Alabaster Earring  -- (no stats in db)
+  Assuage Earring  -- (no stats in db)
+  Bladeborn Earring  -- ATT=8, STORETP=1
+  Brutal Earring  -- DOUBLE_ATTACK=5, STORETP=1
+  Calamitous Earring  -- CONSERVE_MP=4, HP=15, MP=15, WIND_MEVA=10
+  Cessance Earring  -- ACC=6, DOUBLE_ATTACK=3, STORETP=3
+  Eabani Earring  -- DUAL_WIELD=4, EVA=15, HP=45, MEVA=8
+  Evans Earring  -- BP_DELAY=2, MP=50, PERPETUATION_REDUCTION=2
+  Friomisi Earring  -- ENMITY=2, MATT=10
+  Genmei Earring  -- COUNTER=1, DEF=5, DMGPHYS=-200, DMGRANGE=-200, VIT=2
+  Halasz Earring  -- ENMITY=-3, MAGIC_CRITHITRATE=14, MP=45, SPELLINTERRUPT=5
+  Heartseeker Earring  -- ACC=8, SUBTLE_BLOW=1
+  Hecate's Earring  -- MAGIC_CRITHITRATE=3, MATT=6
+  Hermetic Earring  -- MACC=7, MATT=3
+  Kyrene's Earring  -- (no stats in db)
+  Loquac. Earring  -- FASTCAST=2, MP=30
+  Mache Earring  -- ACC=7, DEX=5, DOUBLE_ATTACK=1, MARTIAL_ARTS=10
+  Mache Earring +1  -- ACC=10, DEX=8, DOUBLE_ATTACK=2, MARTIAL_ARTS=13
+  Mendi. Earring  -- CONSERVE_MP=2, CURE_CAST_TIME=5, CURE_POTENCY=5, DEF=4, MP=30
+  Moonshade Earring  AUG["Mag.Atk.Bns."+4 | Latent effect: "Refresh"+1]  -- (no stats in db)
+  Odnowa Earring  -- (no stats in db)
+  Reraise Earring  -- ATT=-2, EVA=2
+  Steelflash Earring  -- ACC=8, STORETP=1
+  Suppanomimi  -- AGI=2, DUAL_WIELD=5, SWORD=5
+  Zwazo Earring  -- (no stats in db)
+
+=== BODY (11 items) ===
+  Alliance Shirt  -- (no stats in db)
+  Councilor's Garb  -- (no stats in db)
+  Federation Aketon  -- DEF=1
+  Flamma Korazin +1  -- ACC=40, AGI=20, CHR=20, DEF=148, DEX=35, EVA=55, HASTE_GEAR=200, HP=140, INT=20, MACC=40, MDEF=6, MEVA=69, MND=20, MP=35, STORETP=8, STR=39, SUBTLE_BLOW=15, VIT=32
+  Gambison  -- DEF=23
+  Jumalik Mail  AUG[HP+40 | Enmity+2]  -- (no stats in db)
+  Kingdom Aketon  -- DEF=1
+  Nyame Mail  AUG[Path: B]  -- ACC=40, AGI=33, ATT=30, CHR=35, DEF=189, DEX=24, DMG=-900, EVA=102, HASTE_GEAR=300, HP=136, INT=42, MACC=40, MAGIC_BURST_BONUS_CAPPED=7, MATT=30, MDEF=8, MEVA=139, MND=37, MP=88, RACC=40, RATT=30, SKILLCHAINDMG=700, STR=35, VIT=35
+  Odyss. Chestplate  -- (no stats in db)
+  Republic Aketon  -- DEF=1
+  Sulevia's Plate. +1  -- (no stats in db)
+
+=== HANDS (7 items) ===
+  Councilor's Cuffs  -- (no stats in db)
+  Despair Fin. Gaunt.  -- (no stats in db)
+  Flam. Manopolas +1  -- ACC=37, AGI=8, CHR=17, CRITHITRATE=7, DEF=106, DEX=42, EVA=36, HASTE_GEAR=400, HP=60, INT=7, MDEF=2, MEVA=48, MND=24, MP=15, STORETP=5, STR=19, VIT=35
+  Nyame Gauntlets  AUG[Path: B]  -- ACC=40, AGI=12, ATT=30, CHR=24, DEF=142, DEX=42, DMG=-700, EVA=80, HASTE_GEAR=300, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=4, MEVA=112, MND=40, MP=73, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=17, VIT=39
+  Odyssean Gauntlets  AUG[Mag. Acc.+7 | "Dbl.Atk."+4]  -- (no stats in db)
+  Odyssean Gauntlets  -- (no stats in db)
+  Sulev. Gauntlets +1  -- (no stats in db)
+
+=== RING (30 items) ===
+  Acumen Ring  -- INT=2, MATT=4
+  Apate Ring  -- (no stats in db)
+  Asklepian Ring  -- CURE_POTENCY_RCVD=3
+  Balrahn's Ring  -- MACC=4
+  Beetle Ring  -- ACC=-3, RACC=3
+  Begrudging Ring  -- (no stats in db)
+  Caliber Ring  -- (no stats in db)
+  Chirich Ring +1  -- ACC=10, REGEN=2, STORETP=6, SUBTLE_BLOW=10
+  Dcl.Grd. Ring  -- (no stats in db)
+  Dim. Ring (Dem)  -- (no stats in db)
+  Dim. Ring (Holla)  -- (no stats in db)
+  Dim. Ring (Mea)  -- (no stats in db)
+  Echad Ring  -- (no stats in db)
+  Fervor Ring  -- SUMMONING=4
+  Hetairoi Ring  -- CRITHITRATE=1, TRIPLE_ATTACK=2, TRIPLE_ATTACK_DMG=5
+  Jubilee Ring  -- (no stats in db)
+  Mercenary's Ring  -- VIT=5
+  Patricius Ring  -- ACC=7, DMGPHYS=-500, DMGRANGE=-500
+  Petrov Ring  -- AGI=3, DEX=3, DOUBLE_ATTACK=1, ENMITY=4, STORETP=5, STR=3, VIT=3
+  Prolix Ring  -- ENMITY=-3, FASTCAST=2, MP=20
+  Purity Ring  -- (no stats in db)
+  Rajas Ring  -- DEX=2, STORETP=5, STR=2, SUBTLE_BLOW=5
+  Shiva Ring  -- ICE_MEVA=15, INT=8
+  Tavnazian Ring  -- (no stats in db)
+  Thurandaut Ring  -- (no stats in db)
+  Varar Ring  -- ACC=7
+  Varar Ring +1  -- ACC=10
+  Volunteer's Ring  -- MDEF=3
+  Warden's Ring  -- CRITICAL_HIT_EVASION=5, DEATHRES=10, DMGPHYS=-300, DMGRANGE=-300
+  Warp Ring  -- (no stats in db)
+
+=== BACK (6 items) ===
+  Aptitude Mantle +1  -- CAPACITY_BONUS=30, DEF=14
+  Atheling Mantle  -- ATT=20, DEF=15, DOUBLE_ATTACK=3
+  Attacker's Mantle  -- ACC=12, ATT=12, DEF=11
+  Bleating Mantle  -- ATT=20, DEF=16, EVA=-10, TRIPLE_ATTACK=2
+  Nexus Cape  -- (no stats in db)
+  Solemnity Cape  -- (no stats in db)
+
+=== WAIST (7 items) ===
+  Eschan Stone  -- ACC=15, ATT=15, DEF=9, HP=20, MACC=7, MATT=7, MP=20, RACC=15, RATT=15
+  Fotia Belt  -- ANY_FTP_BONUS=25, DEF=7, WS_NO_DEPLETE=1
+  Fucho-no-Obi  -- DEF=10, ENH_DRAIN_ASPIR=8, MP=30
+  Luminary Sash  -- CONSERVE_MP=4, DEF=12, MACC=10, MND=10, MP=45
+  Olympus Sash  -- DEF=5, ELEM=5, ENHANCE=5
+  Siegel Sash  -- DEF=5, STONESKIN_BONUS_HP=20
+  Windbuffet Belt +1  -- ACC=2, DEF=9, QUAD_ATTACK=2, TRIPLE_ATTACK=2
+
+=== LEGS (6 items) ===
+  Brais  -- DEF=7
+  Enyo's Cuisses  -- DEF=10, DEX=1
+  Flamma Dirs +1  -- ACC=39, AGI=16, CHR=11, CURE_POTENCY_RCVD=8, DEF=130, DEX=7, EVA=41, HASTE_GEAR=400, HP=100, INT=24, MACC=39, MDEF=5, MEVA=86, MND=14, MP=25, STORETP=7, STR=49, VIT=29
+  Nyame Flanchard  AUG[Path: B]  -- ACC=40, AGI=34, ATT=30, CHR=24, DEF=169, DMG=-800, EVA=85, HASTE_GEAR=500, HP=114, INT=44, MACC=40, MAGIC_BURST_BONUS_CAPPED=6, MATT=30, MDEF=6, MEVA=150, MND=32, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=600, STR=43, VIT=30
+  Odyssean Cuisses  -- (no stats in db)
+  Sulevi. Cuisses +1  -- (no stats in db)
+
+=== FEET (13 items) ===
+  Acro Leggings  -- AGI=30, CHR=24, DEF=72, DEX=15, DOUBLE_ATTACK=2, EVA=52, HP=18, INT=8, MDEF=2, MEVA=75, MND=8, STR=15, VIT=13
+  Carmine Greaves  -- AGI=33, CHR=28, CONSERVE_MP=7, DEF=78, DEX=16, DOUBLE_ATTACK=3, EVA=52, FASTCAST=7, HASTE_GEAR=400, HP=15, MDEF=3, MEVA=80, MND=11, STORETP=7, STR=14, VIT=15
+  Desert Boots  -- AGI=1, DEF=11, HP=10
+  Eschite Greaves  -- (no stats in db)
+  Flam. Gambieras +1  -- ACC=36, AGI=26, CHR=20, DEF=88, DEX=30, DOUBLE_ATTACK=5, EVA=74, HASTE_GEAR=200, HP=40, MACC=36, MDEF=5, MEVA=86, MND=6, MP=10, STORETP=5, STR=27, VIT=20
+  Flamma Gambieras  -- ACC=24, AGI=26, CHR=20, DEF=83, DEX=23, DOUBLE_ATTACK=3, EVA=74, HASTE_GEAR=200, HP=40, MACC=24, MDEF=5, MEVA=86, MND=6, MP=10, STORETP=3, STR=20, VIT=20
+  Founder's Greaves  AUG[VIT+6 | Accuracy+11 | "Mag.Atk.Bns."+8]  -- ACC=20, AGI=28, AMORPH_KILLER=2, AQUAN_KILLER=2, ARCANA_KILLER=2, BEAST_KILLER=2, BIRD_KILLER=2, CHR=21, DEF=84, DEMON_KILLER=2, DEX=21, DOUBLE_ATTACK=2, DRAGON_KILLER=2, EMPTY_KILLER=2, EVA=55, HASTE_GEAR=300, HP=20, HUMANOID_KILLER=2, LIZARD_KILLER=2, LUMINIAN_KILLER=2, LUMINION_KILLER=2, MATT=20, MDEF=2, MEVA=80, MND=7, PLANTOID_KILLER=2, STR=19, UNDEAD_KILLER=2, VERMIN_KILLER=2, VIT=19
+  Gaiters  -- DEF=3
+  Garrison Boots  -- DEF=4, INT=1, MND=1
+  Nyame Sollerets  -- ACC=40, AGI=46, ATT=30, CHR=38, DEF=122, DEX=26, DMG=-700, EVA=119, HASTE_GEAR=300, HP=68, INT=25, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=150, MND=26, MP=44, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=23, VIT=24
+  Odyssean Greaves  AUG[Mag. Acc.+13 | Blood Pact Dmg.+5]  -- (no stats in db)
+  Odyssean Greaves  -- (no stats in db)
+  Sulev. Leggings +1  -- (no stats in db)
