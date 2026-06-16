@@ -96,7 +96,10 @@ local function dbg(tag, msg)
 end
 
 local function start_move_pump()
-    if _move_pump_active then return end
+    if _move_pump_active then
+        dbg('pump', 'start refused: already active')
+        return
+    end
     if _zoning then
         dbg('pump', 'start blocked: _zoning=true')
         return
@@ -110,7 +113,17 @@ local function start_move_pump()
             _move_pump_active = false
             return
         end
-        local more = bag_org.process_queue()
+        -- pcall the process_queue call so a server-side rejection
+        -- or transient API glitch can't strand _move_pump_active=true
+        -- forever (which was making the user reload GSUI after a few
+        -- bulk moves -- no new pump could start because the flag was
+        -- stuck).
+        local ok, more = pcall(bag_org.process_queue)
+        if not ok then
+            dbg('pump', 'tick errored: ' .. tostring(more) .. ' -- clearing flag')
+            _move_pump_active = false
+            return
+        end
         if more then
             coroutine.schedule(tick, 0.1)
         else
@@ -291,6 +304,13 @@ end
 local show_org_bag
 local show_org_conflicts
 local show_org_scattered
+
+-- Bulk-move generation counter. Every click that fires a bulk move
+-- increments this. The verify coroutine captures its own _bulk_op_id
+-- at schedule time and bails on entry if a newer bulk has started
+-- since -- prevents stale verifies from firing refresh_organizer
+-- over and over after a chain of bulk moves.
+local _bulk_op_id = 0
 
 -- Print a smart "N items did not move" message that diagnoses the
 -- actual failure mode instead of always blaming mog-house location.
@@ -1003,9 +1023,17 @@ local function handle_click(mx, my)
             ui.clear_selection()
             ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest
                           .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+            _bulk_op_id = _bulk_op_id + 1
+            local my_op = _bulk_op_id
+            dbg('bulk', 'A start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest)
             start_move_pump()
             coroutine.schedule(function()
                 if not initialized or _zoning then return end
+                if my_op ~= _bulk_op_id then
+                    dbg('bulk', 'A verify SKIPPED op=' .. my_op .. ' (newer=' .. _bulk_op_id .. ')')
+                    return
+                end
+                dbg('bulk', 'A verify firing op=' .. my_op)
                 refresh_organizer()
                 local moved_lines, unmoved_count = {}, 0
                 for _, snap in ipairs(snapshots) do
@@ -2208,11 +2236,19 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                     end
                     ui.clear_selection()
                     ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+                    _bulk_op_id = _bulk_op_id + 1
+                    local my_op = _bulk_op_id
+                    dbg('bulk', 'B start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest)
                     -- Drain the queue. Without this nothing ever moves;
                     -- bag_org.queue_move only appends to the queue.
                     start_move_pump()
                     coroutine.schedule(function()
                         if not initialized or _zoning then return end
+                        if my_op ~= _bulk_op_id then
+                            dbg('bulk', 'B verify SKIPPED op=' .. my_op .. ' (newer=' .. _bulk_op_id .. ')')
+                            return
+                        end
+                        dbg('bulk', 'B verify firing op=' .. my_op)
                         refresh_organizer()
                         local moved_lines, unmoved_count = {}, 0
                         for _, snap in ipairs(snapshots) do
