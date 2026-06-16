@@ -1115,11 +1115,38 @@ local function handle_click(mx, my)
             local items_attempted = {}
             local queued, skipped, skipped_non_gear = 0, 0, {}
             local dest_is_wardrobe = is_wardrobe(dest)
+            -- In Scattered view, each displayed item is only the FIRST
+            -- occurrence we found of its id. A bulk move there needs to
+            -- consolidate ALL instances of each selected item id across
+            -- every bag, not just the one that happened to be picked
+            -- first (which is often inventory -- hence the user report
+            -- "moves inventory copies but not scattered ones"). Expand
+            -- the selection by id into every matching slot in
+            -- _org_all_bag_items.
+            local is_scatter_view = (ui.get_org_view() == 'scattered') and _org_all_bag_items
             for _, item in ipairs(selected) do
-                if item.bag_name == dest then
-                    skipped = skipped + 1
-                elseif dest_is_wardrobe and not is_equipment(item.id) then
+                if dest_is_wardrobe and not is_equipment(item.id) then
                     skipped_non_gear[#skipped_non_gear+1] = item.name
+                elseif is_scatter_view then
+                    -- Walk every bag for every instance of this item id.
+                    local found_any_other = false
+                    for bag_name, items in pairs(_org_all_bag_items) do
+                        if bag_name ~= dest then
+                            for _, bag_item in ipairs(items) do
+                                if bag_item.id == item.id then
+                                    items_attempted[#items_attempted+1] = (bag_item.count or 1) .. 'x ' .. bag_item.name .. ' (' .. bag_name .. ')'
+                                    bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count, bag_item.id)
+                                    queued = queued + 1
+                                    found_any_other = true
+                                end
+                            end
+                        end
+                    end
+                    if not found_any_other then
+                        skipped = skipped + 1   -- only in dest, nothing to consolidate
+                    end
+                elseif item.bag_name == dest then
+                    skipped = skipped + 1
                 else
                     items_attempted[#items_attempted+1] = (item.count or 1) .. 'x ' .. item.name
                     bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count, item.id)
@@ -2376,11 +2403,33 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                     local items_attempted = {}
                     local queued, skipped, skipped_non_gear = 0, 0, {}
                     local dest_is_wardrobe = is_wardrobe(dest)
+                    -- Scattered-view expansion: same rationale as site A,
+                    -- each scattered list entry only carries one occurrence,
+                    -- so a bulk move in scattered view must consolidate all
+                    -- instances of each item id across every bag.
+                    local is_scatter_view = (ui.get_org_view() == 'scattered') and _org_all_bag_items
                     for _, item in ipairs(selected) do
-                        if item.bag_name == dest then
-                            skipped = skipped + 1
-                        elseif dest_is_wardrobe and not is_equipment(item.id) then
+                        if dest_is_wardrobe and not is_equipment(item.id) then
                             skipped_non_gear[#skipped_non_gear+1] = item.name
+                        elseif is_scatter_view then
+                            local found_any_other = false
+                            for bag_name, items in pairs(_org_all_bag_items) do
+                                if bag_name ~= dest then
+                                    for _, bag_item in ipairs(items) do
+                                        if bag_item.id == item.id then
+                                            items_attempted[#items_attempted+1] = (bag_item.count or 1) .. 'x ' .. bag_item.name .. ' (' .. bag_name .. ')'
+                                            bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count, bag_item.id)
+                                            queued = queued + 1
+                                            found_any_other = true
+                                        end
+                                    end
+                                end
+                            end
+                            if not found_any_other then
+                                skipped = skipped + 1
+                            end
+                        elseif item.bag_name == dest then
+                            skipped = skipped + 1
                         else
                             items_attempted[#items_attempted+1] = (item.count or 1) .. 'x ' .. item.name
                             bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count, item.id)
