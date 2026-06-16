@@ -61,6 +61,26 @@ local bag_org = require('libs/bag_organizer')
 --     parallel even if several click handlers fire queue_move()+
 --     start_move_pump() in the same frame.
 -- ----------------------------------------------------------------------------
+-- Pending verify functions. Each bulk move appends an idempotent verify
+-- closure here. The move pump's tick fires every pending verify when
+-- the queue drains, so each bulk gets its own report at the moment
+-- its items finish moving -- not on a 1+queued*1.5 timer that could
+-- fire after the next bulk has already started. Verifies are also
+-- registered on a fallback timer in case the pump never reaches a
+-- drain (e.g. the user reloads mid-pump).
+--
+-- Declared HERE (before start_move_pump) so the pump's tick captures
+-- this as a local upvalue, not as a global lookup. Lua closures bind
+-- to lexical names at function-definition time; declaring this after
+-- start_move_pump made the reference resolve to a (nil) global.
+local _pending_verifies = {}
+local function fire_all_pending_verifies()
+    while #_pending_verifies > 0 do
+        local fn = table.remove(_pending_verifies, 1)
+        pcall(fn)
+    end
+end
+
 local _move_pump_active = false
 -- Set true on incoming zone packet (0x00B). Cleared by 0x00A (zone-finish)
 -- AFTER windower.ffxi.get_items() returns a valid inventory snapshot, or
@@ -312,21 +332,6 @@ local show_org_scattered
 -- since -- prevents stale verifies from firing refresh_organizer
 -- over and over after a chain of bulk moves.
 local _bulk_op_id = 0
-
--- Pending verify functions. Each bulk move appends an idempotent verify
--- closure here. The move pump's tick fires every pending verify when
--- the queue drains, so each bulk gets its own report at the moment
--- its items finish moving -- not on a 1+queued*1.5 timer that could
--- fire after the next bulk has already started. Verifies are also
--- registered on a fallback timer in case the pump never reaches a
--- drain (e.g. the user reloads mid-pump).
-local _pending_verifies = {}
-local function fire_all_pending_verifies()
-    while #_pending_verifies > 0 do
-        local fn = table.remove(_pending_verifies, 1)
-        pcall(fn)
-    end
-end
 
 -- Wardrobes 1-8 only hold equipment (gear with a slots>0 mask). If a
 -- non-equipment item ends up routed to a wardrobe via GSUI's bag-to-bag
