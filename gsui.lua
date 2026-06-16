@@ -1934,15 +1934,21 @@ windower.register_event('incoming chunk', function(id, original, modified, injec
                 dbg('00A', 'rebuild skipped: stale session (got ' .. my_session .. ', now ' .. _zoning_session .. ')')
                 return
             end
-            -- Zone-based mog house detection as reliable fallback
-            local info = windower.ffxi.get_info()
-            if info then
-                local zone = res.zones[info.zone]
-                if zone and zone.name and zone.name:find('Residential') then
-                    bag_org.set_mog_house(true)
-                    ui.set_mog_house(true)
-                end
-            end
+            -- Sync the cached mog-house flag from LIVE bag-enabled state.
+            -- Old code looked for 'Residential' in the zone name; that
+            -- string doesn't appear in any res/zones.lua entry, so the
+            -- flag never got restored after 0x00B cleared it -- meaning
+            -- Mog Garden (zone 280, has Mog Safe + Locker auto-enabled),
+            -- Nomad Moogles, Porter Moogles, and the actual Mog House
+            -- all looked like "not in mog house" until a bag-move
+            -- specifically retried it. bag_org.is_in_mog_house() polls
+            -- windower.ffxi.get_items()[bag].enabled for every mog bag
+            -- and returns true if any of them is accessible -- that's
+            -- the authoritative live signal.
+            local live_mog = bag_org.is_in_mog_house()
+            bag_org.set_mog_house(live_mog)
+            ui.set_mog_house(live_mog)
+            dbg('00A', 'mog house flag synced from live: ' .. tostring(live_mog))
             ui.build()
             refresh_data()
             if ui.get_mode() == 'organizer' then
