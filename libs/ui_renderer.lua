@@ -540,12 +540,41 @@ function ui.build()
             local ix = inv_x + col * CELL
             local iy = grid_y + row * CELL
             local idx = row * INV_COLS + col + 1
+            -- Multi-select indicator stack (built once per cell, shown
+            -- only when ui.is_selected(item) is true):
+            --   select_bg : full-cell accent-cyan square behind the icon
+            --   select_border : 1px brighter border framing the cell
+            --   check_mark : green "v" glyph pinned to the top-right corner
+            -- Built BEFORE the icon image so the icon paints on top of
+            -- the bg; the check mark is built AFTER so it overlays the
+            -- icon's top-right corner.
+            local select_bg     = make_bg(ix, iy, ICON_SIZE, ICON_SIZE, 0, 40, 90, 160)
+            local select_border = make_bg(ix - 1, iy - 1, ICON_SIZE + 2, ICON_SIZE + 2, 0, 95, 200, 255)
+            -- select_border is just an outer rect; the actual outlined
+            -- look comes from drawing select_bg on top of it (smaller by
+            -- 2 px on each side), but here we use them as two layered
+            -- rects: border first, then bg. Hidden by default.
+            select_bg:hide()
+            select_border:hide()
             local img = icon_handler.create_image({
                 color = { alpha = 0, red = 255, green = 255, blue = 255 },
                 size = { width = ICON_SIZE, height = ICON_SIZE },
                 pos = { x = ix, y = iy },
             })
-            elements.inv_icons[idx] = { image = img, x = ix, y = iy, item = nil, visible = false }
+            -- Use a plain ASCII "v" instead of a unicode checkmark --
+            -- Windower's text renderer doesn't always have the U+2713
+            -- glyph in every installed font, and a missing glyph
+            -- renders as an empty box. "v" reads as a check at small
+            -- sizes and is universally available.
+            local check_mark = make_text('v', ix + ICON_SIZE - 12, iy - 2, 14, 60, 220, 90, true)
+            check_mark:hide()
+            elements.inv_icons[idx] = {
+                image       = img,
+                select_bg   = select_bg,
+                select_border = select_border,
+                check_mark  = check_mark,
+                x = ix, y = iy, item = nil, visible = false,
+            }
         end
     end
 
@@ -1189,13 +1218,22 @@ function ui.refresh_inv_grid()
             -- Always load. See note in update_equipment for why state.visible
             -- is no longer gating icon loads.
             icon_handler.load_icon(icon_data.image, item.id)
-            -- Tint yellow if this item is in the multi-select set.
-            -- image:update() is required after color() to actually commit the
-            -- tint to the render state.
+            -- Multi-select visual: full-cell accent border + filled bg +
+            -- green "v" badge in the corner. Way more visible than the old
+            -- icon-tint-only approach, especially for stacked items where
+            -- the icon is already busy. Falling back to a slight yellow
+            -- tint as a redundant cue for color-blind contrast.
+            local selected = ui.is_selected(item)
             pcall(function()
-                if ui.is_selected(item) then
-                    icon_data.image:color(255, 220, 80)
+                if selected then
+                    icon_data.select_border:alpha(220);     icon_data.select_border:show()
+                    icon_data.select_bg:alpha(150);         icon_data.select_bg:show()
+                    icon_data.check_mark:show()
+                    icon_data.image:color(255, 240, 160)    -- mild yellow tint, redundant cue
                 else
+                    icon_data.select_border:hide()
+                    icon_data.select_bg:hide()
+                    icon_data.check_mark:hide()
                     icon_data.image:color(255, 255, 255)
                 end
                 icon_data.image:update()
@@ -1205,6 +1243,11 @@ function ui.refresh_inv_grid()
             icon_data.visible = false
             icon_data.image:alpha(0)
             icon_data.image:hide()
+            -- Also hide selection overlays for empty cells -- otherwise a
+            -- leftover selection visual from a previous item would linger.
+            if icon_data.select_border then icon_data.select_border:hide() end
+            if icon_data.select_bg     then icon_data.select_bg:hide()     end
+            if icon_data.check_mark    then icon_data.check_mark:hide()    end
         end
     end
 
@@ -1841,6 +1884,11 @@ function ui.hide()
     end
     for _, icon_data in pairs(elements.inv_icons) do
         icon_data.image:hide()
+        -- Also hide the multi-select indicator stack so reopening the
+        -- panel doesn't briefly flash the previous selection state.
+        if icon_data.select_border then icon_data.select_border:hide() end
+        if icon_data.select_bg     then icon_data.select_bg:hide()     end
+        if icon_data.check_mark    then icon_data.check_mark:hide()    end
     end
     -- Sort toggle
     hide_element(elements.sort_toggle_bg)
