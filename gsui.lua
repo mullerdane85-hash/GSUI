@@ -294,7 +294,14 @@ end
 -- Apply current filter to cached inventory and update UI
 local function apply_filter()
     local preset = ui.get_active_filter()
-    local slot_filter = ui.get_slot_filter()
+    -- Slot filter comes from two sources: clicking an equip slot icon
+    -- (state.slot_filter, only visible in GearSwap mode), OR picking a
+    -- "[Head]/[Body]/..." entry from the filter dropdown (preset.slot_filter,
+    -- works in Organizer mode where the equip grid isn't visible). The
+    -- preset's slot takes precedence so a slot-pick from the dropdown is
+    -- self-contained: it doesn't require the user to also have an equip
+    -- slot armed. Either source falls back to the other.
+    local slot_filter = (preset and preset.slot_filter) or ui.get_slot_filter()
     local has_stat_filter = preset and preset.pattern
     local has_slot_filter = slot_filter ~= nil
 

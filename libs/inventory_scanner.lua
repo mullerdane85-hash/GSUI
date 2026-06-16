@@ -796,6 +796,34 @@ function inventory_scanner.find_active_filters(items)
     for _, f in ipairs(matched) do
         table.insert(active, f)
     end
+    -- Slot filters: one entry per equipment slot, in equip-grid order.
+    -- These differ from stat filters in carrying `slot_filter` (not
+    -- `pattern`). gsui.lua's apply_filter treats slot_filter as an
+    -- additional gate on top of any stat filter still in effect.
+    -- Ear / Ring use the LEFT variant: matches_slot_filter checks if
+    -- the slot name appears in item.slots; an earring's slots is
+    -- {'left_ear','right_ear'} so 'left_ear' matches everything that
+    -- fits either ear slot. Same story for rings.
+    local slot_entries = {
+        { name = '-- Slots --',        divider = true },
+        { name = '[Main]',  slot_filter = 'main'      },
+        { name = '[Sub]',   slot_filter = 'sub'       },
+        { name = '[Range]', slot_filter = 'range'     },
+        { name = '[Ammo]',  slot_filter = 'ammo'      },
+        { name = '[Head]',  slot_filter = 'head'      },
+        { name = '[Body]',  slot_filter = 'body'      },
+        { name = '[Hands]', slot_filter = 'hands'     },
+        { name = '[Legs]',  slot_filter = 'legs'      },
+        { name = '[Feet]',  slot_filter = 'feet'      },
+        { name = '[Neck]',  slot_filter = 'neck'      },
+        { name = '[Waist]', slot_filter = 'waist'     },
+        { name = '[Ear]',   slot_filter = 'left_ear'  },
+        { name = '[Ring]',  slot_filter = 'left_ring' },
+        { name = '[Back]',  slot_filter = 'back'      },
+    }
+    for _, e in ipairs(slot_entries) do
+        table.insert(active, e)
+    end
     return active
 end
 

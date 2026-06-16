@@ -805,7 +805,15 @@ function ui.refresh_menu_items()
             item.preset_index = pi
             show_element(item.bg)
             show_element(item.text)
-            if pi == state.active_filter then
+            if preset.divider then
+                -- Header row: muted color, neutral background, not
+                -- highlighted as the active selection even if state
+                -- still points here (set_active_filter refuses to
+                -- assign a divider).
+                item.bg:color(15, 15, 30)
+                item.bg:alpha(200)
+                item.text:color(150, 150, 170)
+            elseif pi == state.active_filter then
                 item.bg:color(50, 100, 200)
                 item.bg:alpha(240)
                 item.text:color(255, 255, 255)
@@ -907,8 +915,13 @@ function ui.is_dropdown_open()
 end
 
 function ui.set_active_filter(preset_index)
-    state.active_filter = preset_index
     local preset = state.filter_presets[preset_index]
+    -- Divider rows are headers, not selectable filters. Clicking one
+    -- shouldn't change the active filter or close the dropdown.
+    if preset and preset.divider then
+        return
+    end
+    state.active_filter = preset_index
     if preset and elements.filter_dropdown then
         elements.filter_dropdown.text:text('[F4] Filter: ' .. preset.name)
     end
