@@ -874,45 +874,72 @@ local function handle_kb_action(action)
         -- verify by inventory diff. If nothing landed, suggest the mog
         -- house. If something landed, list what moved.
         if ui.get_org_view() == 'scattered' and _org_all_bag_items then
-            -- Snapshot how much of this item id sits in `dest` BEFORE.
-            -- After the queue settles we re-scan and the delta = what
-            -- actually moved (server-rejected moves leave dest unchanged).
-            local dest_before = 0
+            -- Wardrobe pre-flight: scattered items by definition lack
+            -- equipment slots (find_scattered already filters on that),
+            -- so they CANNOT go to wardrobes 1-8. Refuse up front
+            -- instead of stranding them in inventory.
+            if is_wardrobe(dest) then
+                windower.add_to_chat(207, 'GSUI: scattered items are non-equipment; they cannot go to ' .. dest .. ' (gear only). Pick safe / safe2 / storage / locker / sack / satchel / case.')
+                return
+            end
+            -- Snapshot the destination's count BY ITEM ID before
+            -- queueing. The verify (fired on pump-drain) compares the
+            -- after-count to this baseline; delta == how much of this
+            -- specific item actually landed.
+            local dest_before_id = 0
             for _, it in ipairs(_org_all_bag_items[dest] or {}) do
-                if it.id == item.id then dest_before = dest_before + it.count end
+                if it.id == item.id then dest_before_id = dest_before_id + it.count end
             end
             local move_count = 0
+            local total_qty = 0
             for bag_name, items in pairs(_org_all_bag_items) do
                 if bag_name ~= dest then
                     for _, bag_item in ipairs(items) do
                         if bag_item.id == item.id then
                             bag_org.queue_move(bag_name, bag_item.bag_index, dest, bag_item.count, bag_item.id)
                             move_count = move_count + 1
+                            total_qty = total_qty + (bag_item.count or 1)
                         end
                     end
                 end
             end
             if move_count > 0 then
+                _bulk_op_id = _bulk_op_id + 1
+                local my_op = _bulk_op_id
+                dbg('scatter', 'consolidate start op=' .. my_op
+                    .. ' item="' .. tostring(item.name) .. '"'
+                    .. ' move_count=' .. move_count
+                    .. ' total_qty=' .. total_qty
+                    .. ' dest=' .. dest
+                    .. ' dest_before_id=' .. dest_before_id)
                 ui.set_status('Consolidating ' .. item.name .. ' -> ' .. dest)
-                start_move_pump()
-                coroutine.schedule(function()
+                local verify_done = false
+                local function do_verify()
+                    if verify_done then return end
+                    verify_done = true
                     if not initialized or _zoning then return end
                     refresh_organizer()
-                    local dest_after = 0
+                    local dest_after_id = 0
                     for _, it in ipairs(_org_all_bag_items[dest] or {}) do
-                        if it.id == item.id then dest_after = dest_after + it.count end
+                        if it.id == item.id then dest_after_id = dest_after_id + it.count end
                     end
-                    local moved = dest_after - dest_before
-                    if moved > 0 then
-                        windower.add_to_chat(207, 'GSUI: moved ' .. moved .. 'x ' .. item.name .. ' -> ' .. dest)
+                    local moved = dest_after_id - dest_before_id
+                    dbg('scatter', 'op=' .. my_op .. ' verify dest_before_id=' .. dest_before_id
+                        .. ' dest_after_id=' .. dest_after_id .. ' moved=' .. moved
+                        .. ' total_qty=' .. total_qty)
+                    if moved >= total_qty then
+                        windower.add_to_chat(207, 'GSUI: consolidated ' .. moved .. 'x ' .. item.name .. ' -> ' .. dest)
+                    elseif moved > 0 then
+                        windower.add_to_chat(207, 'GSUI: partial consolidate -> ' .. dest
+                            .. ': ' .. moved .. ' of ' .. total_qty .. 'x ' .. item.name .. ' landed.')
+                        report_single_move_failure(item.name, dest)
                     else
                         report_single_move_failure(item.name, dest)
                     end
-                -- Wait per move bumped 0.5 -> 1.5 to cover the two-leg
-                -- bag-to-bag path (each item is now pull-to-inventory +
-                -- push-to-dest, two MOVE_DELAY ticks apart). Over-waits
-                -- harmlessly for one-leg moves.
-                end, 2 + move_count * 1.5)
+                end
+                table.insert(_pending_verifies, do_verify)
+                start_move_pump()
+                coroutine.schedule(do_verify, 5 + move_count * 1.5)
             else
                 ui.set_status('Nothing to move')
             end
