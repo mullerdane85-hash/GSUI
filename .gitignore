@@ -24,3 +24,7 @@ backup_old/
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Runtime breadcrumb log (written by gsui.lua dbg() during gameplay).
+# Useful for diagnosis but reset on every addon load -- never commit.
+debug.log
