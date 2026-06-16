@@ -127,8 +127,9 @@ local function start_move_pump()
         if more then
             coroutine.schedule(tick, 0.1)
         else
-            dbg('pump', 'queue drained')
+            dbg('pump', 'queue drained, firing ' .. #_pending_verifies .. ' pending verify(s)')
             _move_pump_active = false
+            fire_all_pending_verifies()
         end
     end
     coroutine.schedule(tick, 0.1)
@@ -311,6 +312,21 @@ local show_org_scattered
 -- since -- prevents stale verifies from firing refresh_organizer
 -- over and over after a chain of bulk moves.
 local _bulk_op_id = 0
+
+-- Pending verify functions. Each bulk move appends an idempotent verify
+-- closure here. The move pump's tick fires every pending verify when
+-- the queue drains, so each bulk gets its own report at the moment
+-- its items finish moving -- not on a 1+queued*1.5 timer that could
+-- fire after the next bulk has already started. Verifies are also
+-- registered on a fallback timer in case the pump never reaches a
+-- drain (e.g. the user reloads mid-pump).
+local _pending_verifies = {}
+local function fire_all_pending_verifies()
+    while #_pending_verifies > 0 do
+        local fn = table.remove(_pending_verifies, 1)
+        pcall(fn)
+    end
+end
 
 -- Wardrobes 1-8 only hold equipment (gear with a slots>0 mask). If a
 -- non-equipment item ends up routed to a wardrobe via GSUI's bag-to-bag
@@ -1071,13 +1087,16 @@ local function handle_click(mx, my)
             _bulk_op_id = _bulk_op_id + 1
             local my_op = _bulk_op_id
             dbg('bulk', 'A start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest .. ' dest_pre=' .. dest_pre)
-            start_move_pump()
-            coroutine.schedule(function()
+            -- Idempotent verify: pump-drain fires it AND a fallback timer
+            -- fires it; the verify_done flag makes whichever runs first
+            -- the only one that does work. This gives each bulk its own
+            -- report at the moment its items finish moving, no matter
+            -- how many other bulks are chained in after.
+            local verify_done = false
+            local function do_verify()
+                if verify_done then return end
+                verify_done = true
                 if not initialized or _zoning then return end
-                if my_op ~= _bulk_op_id then
-                    dbg('bulk', 'A verify SKIPPED op=' .. my_op .. ' (newer=' .. _bulk_op_id .. ')')
-                    return
-                end
                 dbg('bulk', 'A verify firing op=' .. my_op)
                 refresh_organizer()
                 local dest_post = 0
@@ -1099,7 +1118,13 @@ local function handle_click(mx, my)
                 else
                     report_bulk_move_failure(queued, dest)
                 end
-            end, 1 + queued * 1.5)
+            end
+            table.insert(_pending_verifies, do_verify)
+            start_move_pump()
+            -- Fallback timer in case the pump never drains (user reload,
+            -- some edge case). Generous extra margin on top of the
+            -- expected drain time so it almost never beats the drain.
+            coroutine.schedule(do_verify, 5 + queued * 1.5)
         else
             show_org_bag(hit.bag_name)
         end
@@ -2293,15 +2318,12 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                     _bulk_op_id = _bulk_op_id + 1
                     local my_op = _bulk_op_id
                     dbg('bulk', 'B start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest .. ' dest_pre=' .. dest_pre)
-                    -- Drain the queue. Without this nothing ever moves;
-                    -- bag_org.queue_move only appends to the queue.
-                    start_move_pump()
-                    coroutine.schedule(function()
+                    -- Idempotent verify (same pattern as site A).
+                    local verify_done = false
+                    local function do_verify()
+                        if verify_done then return end
+                        verify_done = true
                         if not initialized or _zoning then return end
-                        if my_op ~= _bulk_op_id then
-                            dbg('bulk', 'B verify SKIPPED op=' .. my_op .. ' (newer=' .. _bulk_op_id .. ')')
-                            return
-                        end
                         dbg('bulk', 'B verify firing op=' .. my_op)
                         refresh_organizer()
                         local dest_post = 0
@@ -2323,7 +2345,12 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                         else
                             report_bulk_move_failure(queued, dest)
                         end
-                    end, 1 + queued * 1.5)
+                    end
+                    table.insert(_pending_verifies, do_verify)
+                    -- Drain the queue. Without this nothing ever moves;
+                    -- bag_org.queue_move only appends to the queue.
+                    start_move_pump()
+                    coroutine.schedule(do_verify, 5 + queued * 1.5)
                 end
             end
             return true
