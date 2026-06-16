@@ -312,6 +312,28 @@ local show_org_scattered
 -- over and over after a chain of bulk moves.
 local _bulk_op_id = 0
 
+-- Wardrobes 1-8 only hold equipment (gear with a slots>0 mask). If a
+-- non-equipment item ends up routed to a wardrobe via GSUI's bag-to-bag
+-- two-leg path (get_item to inventory, then put_item to wardrobe), the
+-- server rejects leg 2 and the item is STRANDED in inventory. The
+-- bulk-move click handler pre-filters out non-equipment items when the
+-- destination is a wardrobe so this can't happen.
+local _wardrobe_bags = {
+    wardrobe=true, wardrobe2=true, wardrobe3=true, wardrobe4=true,
+    wardrobe5=true, wardrobe6=true, wardrobe7=true, wardrobe8=true,
+}
+local function is_wardrobe(bag_name)
+    return _wardrobe_bags[bag_name] == true
+end
+-- res.items[id].slots is a bitmask of equipment slots this item can
+-- occupy. 0 (or missing) means the item isn't equippable -- consumables,
+-- crafting mats, key items, furniture, etc.
+local function is_equipment(item_id)
+    if not item_id then return false end
+    local def = res.items[item_id]
+    return def and def.slots and def.slots > 0 or false
+end
+
 -- Print a smart "N items did not move" message that diagnoses the
 -- actual failure mode instead of always blaming mog-house location.
 -- Three cases the server actually rejects on:
@@ -336,6 +358,8 @@ local function report_single_move_failure(item_name, dest)
         hint = dest .. ' is not unlocked from your current location. Talk to Marston (Mog Garden), a Nomad Moogle, or a Porter Moogle to unlock ' .. dest .. '.'
     elseif dest_max and dest_used and dest_used >= dest_max then
         hint = dest .. ' is full (' .. dest_used .. '/' .. dest_max .. '). Move something out first.'
+    elseif is_wardrobe(dest) then
+        hint = dest .. ' only accepts equipment (gear). This item belongs in safe / safe2 / storage / locker / sack / satchel / case.'
     else
         hint = dest .. ' (' .. tostring(dest_used or '?') .. '/' .. tostring(dest_max or '?')
             .. ') -- item may be locked / rare-exclusive duplicate / quest item.'
@@ -365,6 +389,9 @@ local function report_bulk_move_failure(unmoved_count, dest)
         hint = dest .. ' is not unlocked from your current location. Talk to Marston (Mog Garden), a Nomad Moogle, or a Porter Moogle to unlock it.'
     elseif dest_max and dest_used and dest_used >= dest_max then
         hint = dest .. ' is full (' .. dest_used .. '/' .. dest_max .. '). Move something out first.'
+    elseif is_wardrobe(dest) then
+        hint = dest .. ' (' .. tostring(dest_used or '?') .. '/' .. tostring(dest_max or '?')
+            .. ') only accepts equipment (gear). Non-equipment items (consumables, materials, key items) belong in safe / safe2 / storage / locker / sack / satchel / case.'
     else
         hint = 'destination ' .. dest .. ' (' .. tostring(dest_used or '?')
             .. '/' .. tostring(dest_max or '?')
@@ -1018,19 +1045,26 @@ local function handle_click(mx, my)
                 end
             end
             local items_attempted = {}
-            local queued, skipped = 0, 0
+            local queued, skipped, skipped_non_gear = 0, 0, {}
+            local dest_is_wardrobe = is_wardrobe(dest)
             for _, item in ipairs(selected) do
                 if item.bag_name == dest then
                     skipped = skipped + 1
+                elseif dest_is_wardrobe and not is_equipment(item.id) then
+                    skipped_non_gear[#skipped_non_gear+1] = item.name
                 else
                     items_attempted[#items_attempted+1] = (item.count or 1) .. 'x ' .. item.name
                     bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count, item.id)
                     queued = queued + 1
                 end
             end
+            if #skipped_non_gear > 0 then
+                windower.add_to_chat(207, 'GSUI: ' .. #skipped_non_gear .. ' non-equipment item(s) skipped -> ' .. dest .. ' only holds gear: ' .. table.concat(skipped_non_gear, ', '))
+            end
             ui.clear_selection()
             ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest
-                          .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+                          .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or '')
+                          .. (#skipped_non_gear > 0 and ' (' .. #skipped_non_gear .. ' non-gear)' or ''))
             _bulk_op_id = _bulk_op_id + 1
             local my_op = _bulk_op_id
             dbg('bulk', 'A start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest .. ' dest_pre=' .. dest_pre)
@@ -2233,18 +2267,26 @@ windower.register_event('mouse', function(type, x, y, delta, blocked)
                         end
                     end
                     local items_attempted = {}
-                    local queued, skipped = 0, 0
+                    local queued, skipped, skipped_non_gear = 0, 0, {}
+                    local dest_is_wardrobe = is_wardrobe(dest)
                     for _, item in ipairs(selected) do
                         if item.bag_name == dest then
                             skipped = skipped + 1
+                        elseif dest_is_wardrobe and not is_equipment(item.id) then
+                            skipped_non_gear[#skipped_non_gear+1] = item.name
                         else
                             items_attempted[#items_attempted+1] = (item.count or 1) .. 'x ' .. item.name
                             bag_org.queue_move(item.bag_name, item.bag_index, dest, item.count, item.id)
                             queued = queued + 1
                         end
                     end
+                    if #skipped_non_gear > 0 then
+                        windower.add_to_chat(207, 'GSUI: ' .. #skipped_non_gear .. ' non-equipment item(s) skipped -> ' .. dest .. ' only holds gear: ' .. table.concat(skipped_non_gear, ', '))
+                    end
                     ui.clear_selection()
-                    ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or ''))
+                    ui.set_status('Moving ' .. queued .. ' item(s) -> ' .. dest
+                                  .. (skipped > 0 and ' (' .. skipped .. ' skipped)' or '')
+                                  .. (#skipped_non_gear > 0 and ' (' .. #skipped_non_gear .. ' non-gear)' or ''))
                     _bulk_op_id = _bulk_op_id + 1
                     local my_op = _bulk_op_id
                     dbg('bulk', 'B start op=' .. my_op .. ' queued=' .. queued .. ' dest=' .. dest .. ' dest_pre=' .. dest_pre)
