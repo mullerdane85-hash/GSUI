@@ -207,6 +207,12 @@ local function find_inventory_slot(item_id)
     return found
 end
 
+-- Max times a single queue entry can fail its precondition check
+-- before we give up. With MOVE_DELAY = 0.5s, 6 retries = 3 seconds of
+-- patience -- generous for normal server latency, short enough that
+-- a truly stranded item isn't held in the queue forever.
+local MAX_RETRIES = 6
+
 function organizer.process_queue()
     if #move_queue == 0 then return false end
     if os.clock() - move_timer < MOVE_DELAY then return true end
@@ -218,24 +224,61 @@ function organizer.process_queue()
     if not snap or not snap.inventory or (snap.inventory.max or 0) == 0 then
         return true                          -- keep ticks coming
     end
-    local move = table.remove(move_queue, 1)
+    -- PEEK the head entry instead of popping. If the move can't fire
+    -- yet (leg-2 with item not yet in inventory, leg-1 with inventory
+    -- full), leave it in the queue and retry next tick. This is what
+    -- keeps the throughput correct when the player has only 1-2 free
+    -- inventory slots and queues 20+ bag-to-bag moves: leg 2 waits for
+    -- leg 1 to actually settle on the server before firing, so each
+    -- item really does cycle through inventory one at a time.
+    local move = move_queue[1]
     local bag_ids = scanner.get_all_bag_ids()
     local src_id = bag_ids[move.src_bag]
     local dest_id = bag_ids[move.dest_bag]
-    if src_id and dest_id then
-        if move.dest_bag == 'inventory' then
-            -- pull from bag into inventory
-            windower.ffxi.get_item(src_id, move.src_index, move.count)
-        elseif move.src_bag == 'inventory' then
-            -- push from inventory into bag.  src_index may be nil if
-            -- this is leg-2 of a bag-to-bag (the new inventory slot
-            -- isn't known when we queued it). Look it up by item id.
-            local inv_slot = move.src_index or find_inventory_slot(move.item_id)
-            if inv_slot then
-                windower.ffxi.put_item(dest_id, inv_slot, move.count)
+    if not src_id or not dest_id then
+        -- Unknown bag id -- can't process. Drop and move on so we
+        -- don't loop forever on a bogus entry.
+        table.remove(move_queue, 1)
+        move_timer = os.clock()
+        return #move_queue > 0
+    end
+    local fired = false
+    if move.dest_bag == 'inventory' then
+        -- Leg 1: pull from source bag into inventory. Skip without
+        -- consuming if inventory is full; the next leg-2 (which empties
+        -- a slot) should make room on the next tick.
+        local inv_used = snap.inventory.count or 0
+        local inv_max  = snap.inventory.max or 80
+        if inv_used >= inv_max then
+            move.retries = (move.retries or 0) + 1
+            if move.retries >= MAX_RETRIES then
+                table.remove(move_queue, 1)   -- give up
             end
+            move_timer = os.clock()
+            return #move_queue > 0
         end
-        -- (No more 0x029 fallback. Two-leg path in queue_move handles it.)
+        windower.ffxi.get_item(src_id, move.src_index, move.count)
+        fired = true
+    elseif move.src_bag == 'inventory' then
+        -- Leg 2: push from inventory into dest bag. src_index may be
+        -- nil if this is leg-2 of a bag-to-bag -- look up by item id.
+        -- If the item isn't yet in inventory (leg 1 still in flight
+        -- server-side), wait without consuming the queue entry.
+        local inv_slot = move.src_index or find_inventory_slot(move.item_id)
+        if inv_slot then
+            windower.ffxi.put_item(dest_id, inv_slot, move.count)
+            fired = true
+        else
+            move.retries = (move.retries or 0) + 1
+            if move.retries >= MAX_RETRIES then
+                table.remove(move_queue, 1)   -- give up; item stranded
+            end
+            move_timer = os.clock()
+            return #move_queue > 0
+        end
+    end
+    if fired then
+        table.remove(move_queue, 1)
     end
     move_timer = os.clock()
     return #move_queue > 0
