@@ -706,7 +706,7 @@ local function escape_pattern(str)
     return str:gsub('([%(%)%.%%%+%-%*%?%[%]%^%$])', '%%%1')
 end
 
-function inventory_scanner.find_active_filters(items)
+function inventory_scanner.find_active_filters(items, mode)
     local matched = {}
     local seen_names = {}
     -- Check master list
@@ -796,33 +796,40 @@ function inventory_scanner.find_active_filters(items)
     for _, f in ipairs(matched) do
         table.insert(active, f)
     end
-    -- Slot filters: one entry per equipment slot, in equip-grid order.
-    -- These differ from stat filters in carrying `slot_filter` (not
-    -- `pattern`). gsui.lua's apply_filter treats slot_filter as an
-    -- additional gate on top of any stat filter still in effect.
-    -- Ear / Ring use the LEFT variant: matches_slot_filter checks if
-    -- the slot name appears in item.slots; an earring's slots is
-    -- {'left_ear','right_ear'} so 'left_ear' matches everything that
-    -- fits either ear slot. Same story for rings.
-    local slot_entries = {
-        { name = '-- Slots --',        divider = true },
-        { name = '[Main]',  slot_filter = 'main'      },
-        { name = '[Sub]',   slot_filter = 'sub'       },
-        { name = '[Range]', slot_filter = 'range'     },
-        { name = '[Ammo]',  slot_filter = 'ammo'      },
-        { name = '[Head]',  slot_filter = 'head'      },
-        { name = '[Body]',  slot_filter = 'body'      },
-        { name = '[Hands]', slot_filter = 'hands'     },
-        { name = '[Legs]',  slot_filter = 'legs'      },
-        { name = '[Feet]',  slot_filter = 'feet'      },
-        { name = '[Neck]',  slot_filter = 'neck'      },
-        { name = '[Waist]', slot_filter = 'waist'     },
-        { name = '[Ear]',   slot_filter = 'left_ear'  },
-        { name = '[Ring]',  slot_filter = 'left_ring' },
-        { name = '[Back]',  slot_filter = 'back'      },
-    }
-    for _, e in ipairs(slot_entries) do
-        table.insert(active, e)
+    -- Slot filters belong to Organizer mode only -- in GearSwap mode
+    -- the user already has the 16-icon equip grid which they can click
+    -- to filter by slot, so the dropdown should keep its full surface
+    -- area for stat filters (Haste, JA-enhances, etc.). Caller passes
+    -- the current mode; we only append the slot section for organizer.
+    if mode == 'organizer' then
+        -- One entry per equipment slot, in equip-grid order.
+        -- These differ from stat filters in carrying `slot_filter`
+        -- (not `pattern`). gsui.lua's apply_filter treats slot_filter
+        -- as an additional gate on top of any stat filter in effect.
+        -- Ear / Ring use the LEFT variant: matches_slot_filter checks
+        -- if the slot name appears in item.slots; an earring's slots
+        -- is {'left_ear','right_ear'} so 'left_ear' matches anything
+        -- that fits either ear slot. Same story for rings.
+        local slot_entries = {
+            { name = '-- Slots --',        divider = true },
+            { name = '[Main]',  slot_filter = 'main'      },
+            { name = '[Sub]',   slot_filter = 'sub'       },
+            { name = '[Range]', slot_filter = 'range'     },
+            { name = '[Ammo]',  slot_filter = 'ammo'      },
+            { name = '[Head]',  slot_filter = 'head'      },
+            { name = '[Body]',  slot_filter = 'body'      },
+            { name = '[Hands]', slot_filter = 'hands'     },
+            { name = '[Legs]',  slot_filter = 'legs'      },
+            { name = '[Feet]',  slot_filter = 'feet'      },
+            { name = '[Neck]',  slot_filter = 'neck'      },
+            { name = '[Waist]', slot_filter = 'waist'     },
+            { name = '[Ear]',   slot_filter = 'left_ear'  },
+            { name = '[Ring]',  slot_filter = 'left_ring' },
+            { name = '[Back]',  slot_filter = 'back'      },
+        }
+        for _, e in ipairs(slot_entries) do
+            table.insert(active, e)
+        end
     end
     return active
 end

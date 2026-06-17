@@ -633,7 +633,10 @@ local function initialize()
     update_stats(eq)
 
     scan_all_inventory()
-    local active_filters = scanner.find_active_filters(cached_all_items)
+    -- Pass the current mode so the slot filters ([Main]/[Sub]/etc.)
+    -- only appear in Organizer mode, keeping GearSwap mode's dropdown
+    -- focused on stat filters (Haste, JA-enhances, ...).
+    local active_filters = scanner.find_active_filters(cached_all_items, ui.get_mode and ui.get_mode())
     ui.update_filter_presets(active_filters)
 
     -- GearTree integration: try to locate + parse the currently-active
@@ -1096,6 +1099,10 @@ local function handle_click(mx, my)
             ui.set_mode('organizer')
             refresh_organizer()
             show_org_bag('inventory')
+            -- Rebuild filter dropdown so it grows the [Main]/[Sub]/...
+            -- slot section (organizer-only).
+            local f = scanner.find_active_filters(cached_all_items, 'organizer')
+            ui.update_filter_presets(f)
         end
         return true
     elseif hit.type == 'tab_gearswap' then
@@ -1104,6 +1111,11 @@ local function handle_click(mx, my)
             ui.set_inv_label('All Storage')
             ui.update_inventory(cached_all_items)
             apply_filter()
+            -- Rebuild filter dropdown so the slot section is dropped
+            -- (gearswap mode keeps the stat filters only -- the equip
+            -- grid already lets the user slot-filter by click).
+            local f = scanner.find_active_filters(cached_all_items, 'gearswap')
+            ui.update_filter_presets(f)
         end
         return true
     elseif hit.type == 'org_bag' then
@@ -1952,6 +1964,9 @@ local function kb_handle_f1()
         ui.set_inv_label('All Storage')
         ui.update_inventory(cached_all_items)
         apply_filter()
+        -- Drop the slot section from the filter dropdown.
+        local f = scanner.find_active_filters(cached_all_items, 'gearswap')
+        ui.update_filter_presets(f)
     end
 end
 
@@ -1960,6 +1975,9 @@ local function kb_handle_f2()
         ui.set_mode('organizer')
         refresh_organizer()
         show_org_bag('inventory')
+        -- Bring back the slot section for the bag organizer.
+        local f = scanner.find_active_filters(cached_all_items, 'organizer')
+        ui.update_filter_presets(f)
     end
 end
 
@@ -2335,8 +2353,9 @@ windower.register_event('job change', function()
             local eq = scanner.scan_equipment()
             set_gen.populate_from_equipment(eq)
             update_stats(eq)
-            -- Rebuild filters for new job
-            local active_filters = scanner.find_active_filters(cached_all_items)
+            -- Rebuild filters for new job; mode controls whether the
+            -- [Main]/[Sub]/... slot section is appended.
+            local active_filters = scanner.find_active_filters(cached_all_items, ui.get_mode and ui.get_mode())
             ui.update_filter_presets(active_filters)
             -- Re-locate + re-parse the GS file for the new job
             local p = windower.ffxi.get_player()
