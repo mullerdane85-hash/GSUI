@@ -1,0 +1,604 @@
+Wolfgangknoxley WAR-equippable inventory audit
+  Source: Wolfgangknoxley 2026-06-20 22-02-31.lua
+  Stats:  item_stats.json  (10694 items)
+  Jobs:   item_jobs.json   (14738 items)
+
+=== MAIN (54 items) ===
+  Agoge Chopper  -- ACC=40, CRITHITRATE=7, HP=140, MACC=40
+  Ark Scythe  -- (NO STATS IN DB)
+  Autarch's Axe  -- (NO STATS IN DB)
+  Bahadur  -- DEX=2, HP=10, VIT=2
+  Beetle Knife  -- AGI=1
+  Bone Knife +1  -- ACC=5, ATT=5, LIGHT_MEVA=-5
+  Bronze Knife  -- (NO STATS IN DB)
+  Centurion's Sword  -- ACC=3, ATT=4
+  Chaosbringer  -- (NO STATS IN DB)
+  Chipped Scimitar  -- (NO STATS IN DB)
+  Cmb.Cst. Axe  -- ATT=5
+  Crimson Blade  -- INT=5, MP=10
+  Duel Rapier  -- PARRY=10
+  Estramacon  -- ITEM_ADDEFFECT_CHANCE=5, ITEM_ADDEFFECT_DMG=2, ITEM_ADDEFFECT_TYPE=7
+  Excalipoor II  -- ADDS_WEAPONSKILL=227
+  Firetongue +1  -- (NO STATS IN DB)
+  Flame Blade  -- ITEM_ADDEFFECT_CHANCE=5, ITEM_ADDEFFECT_DMG=10, ITEM_ADDEFFECT_ELEMENT=1, ITEM_ADDEFFECT_TYPE=1, ITEM_SUBEFFECT=1
+  Flame Sword  -- ITEM_ADDEFFECT_CHANCE=10, ITEM_ADDEFFECT_DMG=9, ITEM_ADDEFFECT_ELEMENT=1, ITEM_ADDEFFECT_TYPE=1, ITEM_SUBEFFECT=1
+  Fuscina  -- ITEM_ADDEFFECT_CHANCE=5, ITEM_ADDEFFECT_DMG=10, ITEM_ADDEFFECT_ELEMENT=5, ITEM_ADDEFFECT_TYPE=1, ITEM_SUBEFFECT=5
+  Harpoon  -- (NO STATS IN DB)
+  Heavy Dst. Axe  -- (NO STATS IN DB)
+  Home. Labrys  -- (NO STATS IN DB)
+  Homestead Axe  -- (NO STATS IN DB)
+  Homestead Blade  -- (NO STATS IN DB)
+  Kaja Chopper  -- ACC=35, ADDS_WEAPONSKILL=88, ATT=25, DEX=15, MACC=35, STR=15, VIT=15
+  Kaja Lance  -- ACC=35, ADDS_WEAPONSKILL=120, ATT=25, DEX=15, INT=15, MACC=35, MAGIC_DAMAGE=226, MATT=18, MND=15
+  Kam'lanaut's Sword  -- (NO STATS IN DB)
+  Kgd. Signet Staff  -- (NO STATS IN DB)
+  Kheten  -- (NO STATS IN DB)
+  Korrigan Mallet  -- (NO STATS IN DB)
+  Leucous Voulge  -- (NO STATS IN DB)
+  Mekki Shakki  -- ACC=-4, ATT=12, STORETP=5, STR=5
+  Mercenary's Knife  -- ACC=2
+  Mercurial Kris  -- (NO STATS IN DB)
+  Mes'yohi Sword  -- ATT=13, MDEF=3
+  Mythril Knuckles  -- ACC=2
+  Naegling  -- ACC=40, ATT=30, DEX=15, INT=16, MACC=40, MAGIC_DAMAGE=217, MATT=16, MND=17
+  Neckchopper  -- ACC=5
+  Obelisk  -- INT=-1, MND=-1, STR=1
+  Onion Dagger  -- (NO STATS IN DB)
+  Onion Sword  -- (NO STATS IN DB)
+  Orc Piercer  -- CHR=4, HP=7
+  Poison Axe  -- (NO STATS IN DB)
+  Ram Staff  -- (NO STATS IN DB)
+  Razor Axe  -- DEX=2, STR=2
+  Rusty Pick  -- (NO STATS IN DB)
+  Sh. Moogle Rod  -- (NO STATS IN DB)
+  Sh. Moogle Rod +1  -- (NO STATS IN DB)
+  Shellbuster  -- CHR=4, HP=7
+  Spatha  -- (NO STATS IN DB)
+  Sword of Trials  -- EARTH_MEVA=10, HP=20, ICE_MEVA=10
+  Voay Staff -1  -- ACC=-50, INT=6, MACC=-50, MAGIC_DAMAGE=65, MATT=8, MND=6
+  Voluspa Chopper  -- (NO STATS IN DB)
+  Wis.Wiz. Anelace  -- ATT=14
+
+=== SUB (14 items) ===
+  Blurred Shield +1  -- ACC=20, ATT=20, FENCER_CRITHITRATE=1, FENCER_TP_BONUS=50, SHIELDBLOCKRATE=10
+  Choco. Shield +1  -- DEF=2
+  Dullahan Shield  -- (NO STATS IN DB)
+  Duplus Grip  -- DOUBLE_ATTACK=3
+  Heater Shield  -- DEF=12
+  Homestead Shield  -- (NO STATS IN DB)
+  Jody Shield  -- (NO STATS IN DB)
+  Kam'lanaut's Shield  -- DEF=1
+  Kite Shield  -- DEF=8
+  Moogle Guard +1  -- DEF=2
+  Shell Shield  -- AGI=-2, DEF=2, VIT=1, WATER_MEVA=2
+  Tower Shield  -- DEF=18
+  Viking Shield  -- ATT=12, DEF=8
+  Voluspa Grip  -- (NO STATS IN DB)
+
+=== RANGE (4 items) ===
+  Carbon Fish. Rod  -- (NO STATS IN DB)
+  Exalted Bow +1  -- ADDS_WEAPONSKILL=198, AGI=12, RACC=57, STR=12
+  Lion Crossbow  -- (NO STATS IN DB)
+  War Bow +1  -- RACC=2, RATT=18
+
+=== AMMO (4 items) ===
+  Fullmetal Bullet  -- (NO STATS IN DB)
+  Goliath Worm  -- (NO STATS IN DB)
+  Scorpion Arrow  -- RACC=5
+  Staunch Tathlum +1  -- DMG=-300, SPELLINTERRUPT=11, STATUSRES=11
+
+=== HEAD (26 items) ===
+  Beetle Mask +1  -- DEF=10, EVA=1, ICE_MEVA=-3
+  Behe. Masque +1  -- (NO STATS IN DB)
+  Brass Mask  -- DEF=11
+  Cowardice Petasos  -- DEF=1
+  Cumulus Masque  -- DEF=1
+  Decennial Crown +1  -- DEF=2, EQUIPMENT_ONLY_RACE=149
+  Destrier Beret  -- DEF=7
+  Emperor Hairpin  -- AGI=3, DEX=3, EVA=10, HP=-15
+  Eschite Helm  -- (NO STATS IN DB)
+  Fazheluo Helm  -- ATT=14, DEF=38, GAXE=5, GKATANA=5, HASTE_GEAR=500, SCYTHE=5
+  Fighter's Mask  -- DEF=24, DEX=3, ENMITY=1, HP=15, INT=1
+  Flam. Zucchetto +1  -- ACC=38, AGI=16, CHR=12, DEF=118, DEX=28, EVA=49, HASTE_GEAR=400, HP=80, INT=12, MACC=38, MDEF=3, MEVA=53, MND=12, MP=20, STORETP=5, STR=32, TRIPLE_ATTACK=4, VIT=24
+  Flam. Zucchetto +2  -- ACC=44, AGI=16, CHR=12, DEF=123, DEX=32, EVA=49, HASTE_GEAR=400, HP=80, INT=12, MACC=44, MDEF=3, MEVA=53, MND=12, MP=20, STORETP=6, STR=36, TRIPLE_ATTACK=5, VIT=24
+  Fourth Armet  -- DEF=18, VIT=3
+  Gorney Morion +1  -- AGI=23, CHR=12, DEF=113, DEX=23, EVA=33, HASTE_GEAR=700, HP=41, INT=12, MDEF=2, MEVA=32, MND=12, MP=23, STR=29, VIT=29
+  Korrigan Masque  -- (NO STATS IN DB)
+  Lizard Helm  -- DEF=7
+  Lyco. Masque  -- (NO STATS IN DB)
+  Nyame Helm  -- ACC=40, AGI=23, ATT=30, CHR=24, DEF=156, DEX=25, DMG=-700, EVA=91, HASTE_GEAR=600, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=123, MND=26, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=26, VIT=24
+  Perle Salade  -- ATT=7, DEF=37, HASTE_GEAR=300, STR=5, VIT=5
+  Ravager's Mask  -- ATT=5, DEF=33, STR=3, VIT=3
+  Sakpata's Helm  -- ACC=40, AGI=21, ATT=40, CHR=21, DEF=160, DEX=20, DMG=-700, DOUBLE_ATTACK=5, EVA=63, FASTCAST=8, HASTE_GEAR=400, HP=91, INT=19, MACC=40, MDEF=7, MEVA=123, MND=23, MP=44, STR=33, VIT=40
+  Sulevia's Mask +2  -- ACC=44, AGI=12, ATT=48, CHR=22, DEF=123, DEX=19, DMG=-600, EVA=27, HASTE_GEAR=300, HP=40, INT=11, MDEF=1, MEVA=43, MND=22, MP=40, STORETP=10, STR=33, VIT=40
+  Walahra Turban  -- HASTE_GEAR=500, HP=30, MP=30
+  Wh. Rarab Cap +1  -- DEF=2, TREASURE_HUNTER=1
+  Zeal Cap +1  -- ACC=3, ATT=3, DEF=20, HASTE_GEAR=200
+
+=== NECK (7 items) ===
+  Armiger's Lace  -- STR=1, VIT=1
+  Chivalrous Chain  -- ACC=5, DEF=4, STORETP=1, STR=3
+  Peacock Charm  -- ACC=10, DARK_MEVA=-10, RACC=10
+  Spike Necklace  -- DEX=3, MND=-6, STR=3
+  Unmoving Collar +1  -- (NO STATS IN DB)
+  War. Beads +1  -- ACC=20, ATT=20, FENCER_CRITHITRATE=1, FENCER_TP_BONUS=50
+  Ygnas's Resolve +1  -- ALL_WSDMG_ALL_HITS=25
+
+=== EAR (14 items) ===
+  Assault Earring  -- ACC=2, ATT=5, DEF=-3, EVA=-2
+  Beetle Earring +1  -- ATT=3, EVA=-2
+  Brutal Earring  -- DOUBLE_ATTACK=5, STORETP=1
+  Drone Earring  -- AGI=3, WIND_MEVA=6
+  Ethereal Earring  -- ABSORB_DMG_TO_MP=3, ATT=5, EVA=5, HP=15
+  Fang Earring  -- ATT=4, EVA=-4
+  Gold Earring  -- ATT=-3, EVA=3
+  Mache Earring +1  -- ACC=10, DEX=8, DOUBLE_ATTACK=2, MARTIAL_ARTS=13
+  Megasco Earring  -- ACC=2, EVA=6, HP=-10
+  Moonshade Earring  AUG[Accuracy+4 | TP Bonus +250]  -- (NO STATS IN DB)
+  Spike Earring  -- ATT=5, EVA=-5
+  Stormer Earring  -- (NO STATS IN DB)
+  Suppanomimi  -- AGI=2, DUAL_WIELD=5, SWORD=5
+  Velocity Earring  -- EVA=4, SLOWRES=2
+
+=== BODY (35 items) ===
+  Akitu Shirt  -- DEF=1
+  Alliance Shirt  -- (NO STATS IN DB)
+  Beetle Harness  -- DEF=17
+  Behemoth Suit +1  -- (NO STATS IN DB)
+  Brigandine  -- DEF=32, DEX=2, HP=10, VIT=2
+  Chainmail  -- DEF=21
+  Councilor's Garb  -- (NO STATS IN DB)
+  Cowardice Coat  -- DEF=1
+  Crustacean Shirt  -- DEF=1
+  Decennial Coat +1  -- DEF=2, EQUIPMENT_ONLY_RACE=149
+  Elvaan Jerkin  -- DEF=2, EQUIPMENT_ONLY_RACE=4
+  Fighter's Lorica  -- DEF=47, ENMITY=8, FIRE_MEVA=10, HP=20, VIT=5
+  Flamma Korazin +1  -- ACC=40, AGI=20, CHR=20, DEF=148, DEX=35, EVA=55, HASTE_GEAR=200, HP=140, INT=20, MACC=40, MDEF=6, MEVA=69, MND=20, MP=35, STORETP=8, STR=39, SUBTLE_BLOW=15, VIT=32
+  Flamma Korazin +2  -- (NO STATS IN DB)
+  Gorney Haubert +1  -- ACC=17, AGI=24, CHR=24, DEF=143, DEX=24, DOUBLE_ATTACK=2, EVA=41, HASTE_GEAR=300, HP=63, INT=24, MDEF=4, MEVA=48, MND=24, MP=35, STR=34, VIT=34
+  Haubergeon +1  -- ACC=12, AGI=-5, ATT=12, DEF=46, DEX=6, EVA=-20, STR=6
+  Irn.Msk. Cuirass  -- DEF=40, VIT=1
+  Karmesin Vest  -- ACC=23, AGI=29, CHR=22, DEF=132, DEX=30, EVA=62, HASTE_GEAR=600, HP=59, INT=22, MDEF=6, MEVA=64, MND=22, MP=44, STR=25, VIT=23
+  Kingdom Aketon  -- DEF=1
+  Korrigan Suit  -- (NO STATS IN DB)
+  Mandragora Shirt  -- (NO STATS IN DB)
+  Mes. Haubergeon  -- ACC=30, AGI=6, ATT=30, CHR=6, DEF=140, DEX=29, DOUBLE_ATTACK=2, HASTE_GEAR=300, HP=63, INT=6, MND=6, MP=35, STR=29, VIT=29
+  Moogle Shirt  -- (NO STATS IN DB)
+  Novennial Coat  -- DEF=1, EQUIPMENT_ONLY_RACE=149, HP=9, LIGHT_MEVA=9
+  Nyame Mail  -- ACC=40, AGI=33, ATT=30, CHR=35, DEF=189, DEX=24, DMG=-900, EVA=102, HASTE_GEAR=300, HP=136, INT=42, MACC=40, MAGIC_BURST_BONUS_CAPPED=7, MATT=30, MDEF=8, MEVA=139, MND=37, MP=88, RACC=40, RATT=30, SKILLCHAINDMG=700, STR=35, VIT=35
+  Perle Hauberk  -- ACC=8, ATT=8, CRITHITRATE=2, DEF=61, DEX=4, STR=8
+  Poroggo Cassock  -- DEF=1
+  Pupil's Camisa  -- (NO STATS IN DB)
+  Pupil's Shirt  -- (NO STATS IN DB)
+  Rage Platemail  -- DEF=1
+  Ryl.Kgt. Chainmail  -- ATT=3, DEF=43, DEX=2, STR=2
+  Ryl.Sqr. Chnml. +1  -- DEF=32, DEX=1
+  Sakpata's Plate  -- ACC=40, AGI=25, ATT=40, CHR=26, CURE_POTENCY_RCVD=10, DEF=194, DEX=25, DMG=-1000, DOUBLE_ATTACK=8, EVA=74, HASTE_GEAR=200, HP=136, INT=24, MACC=40, MDEF=10, MEVA=139, MND=28, MP=59, STR=42, VIT=42
+  Scp. Harness +1  -- ACC=12, DARK_MEVA=20, DEF=41, EVA=12, HP=20, ICE_MEVA=-20, WATER_MEVA=20
+  Sulevia's Plate. +2  -- (NO STATS IN DB)
+
+=== HANDS (19 items) ===
+  Beetle Mittens  -- DEF=6
+  Chain Mittens  -- DEF=7
+  Councilor's Cuffs  -- (NO STATS IN DB)
+  Cowardice Gloves  -- DEF=1
+  Dusk Gloves +1  -- ATT=6, DEF=25, HASTE_GEAR=400, HP=22, MOVE_SPEED_STACKABLE=-4
+  Elvaan Gloves  -- DEF=1, EQUIPMENT_ONLY_RACE=4
+  Fighter's Mufflers  -- DEF=16, ENMITY=3, HP=13, SHIELD=10, STR=4
+  Flam. Manopolas +1  -- ACC=37, AGI=8, CHR=17, CRITHITRATE=7, DEF=106, DEX=42, EVA=36, HASTE_GEAR=400, HP=60, INT=7, MDEF=2, MEVA=48, MND=24, MP=15, STORETP=5, STR=19, VIT=35
+  Flam. Manopolas +2  -- (NO STATS IN DB)
+  Fourth Gauntlets  -- ACC=5, DEF=13
+  Gigas Bracelets  -- AGI=-2, DEF=9, DEX=-2, HP=15, STR=3
+  Gorney Moufles +1  -- ATT=12, CHR=19, DEF=101, DEX=29, EVA=22, HASTE_GEAR=500, HP=45, INT=8, MDEF=1, MEVA=26, MND=25, STR=10, VIT=33
+  Irn.Msk. Gauntlets  -- DEF=12, RACC=5
+  Nyame Gauntlets  -- ACC=40, AGI=12, ATT=30, CHR=24, DEF=142, DEX=42, DMG=-700, EVA=80, HASTE_GEAR=300, HP=91, INT=28, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=4, MEVA=112, MND=40, MP=73, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=17, VIT=39
+  Perle Moufles  -- ATT=10, DEF=23, DEX=2, HASTE_GEAR=200, STR=4
+  Rage Gauntlets  -- DEF=1
+  Sakpata's Gauntlets  -- ACC=40, ATT=40, CHR=26, DEF=146, DEX=35, DMG=-800, DOUBLE_ATTACK=6, EVA=52, HASTE_GEAR=400, HP=91, INT=14, MACC=40, MDEF=6, MEVA=112, MND=33, MP=53, STR=24, SUBTLE_BLOW=8, VIT=46
+  Spiked Fng.Gnt.  -- ATT=12, DEF=8, VIT=-2
+  Sulev. Gauntlets +2  -- (NO STATS IN DB)
+
+=== RING (27 items) ===
+  Balance Ring  -- DEX=2, THUNDER_MEVA=4
+  Caliber Ring  -- (NO STATS IN DB)
+  Chirich Ring +1  -- ACC=10, REGEN=2, STORETP=6, SUBTLE_BLOW=10
+  Dcl.Grd. Ring  -- (NO STATS IN DB)
+  Dim. Ring (Holla)  -- (NO STATS IN DB)
+  Echad Ring  -- (NO STATS IN DB)
+  Emperor Band  -- (NO STATS IN DB)
+  Epaminondas's Ring  -- ALL_WSDMG_ALL_HITS=5, STORETP=-10
+  Facility Ring  -- (NO STATS IN DB)
+  Flamma Ring  -- (NO STATS IN DB)
+  Griffon Ring  -- CRITICAL_HIT_EVASION=1, HP=25
+  Jubilee Ring  -- (NO STATS IN DB)
+  Ligeia Ring  -- (NO STATS IN DB)
+  Metamorph Ring  -- CHR=5, CONVHPTOMP=50, INT=5, MND=5
+  Moon Ring  -- CHR=3, LIGHT_MEVA=7
+  Moonbeam Ring  -- (NO STATS IN DB)
+  Niqmaddu Ring  -- DEX=10, QUAD_ATTACK=3, STR=10, SUBTLE_BLOW_II=5, VIT=10
+  Phalanx Ring  -- DEF=10
+  Rajas Ring  -- DEX=2, STORETP=5, STR=2, SUBTLE_BLOW=5
+  San d'Orian Ring  -- DEF=2, MND=1, STR=1
+  Seabird's Ring  -- (NO STATS IN DB)
+  Shneddick Ring  -- BINDRES=15, GRAVITYRES=15, MOVE_SPEED_GEAR_BONUS=18, PETRIFYRES=15
+  Sniper's Ring +1  -- ACC=7, DARK_MEVA=-25, DEF=-12, RACC=7
+  Sroda Ring  -- DEX=-20, STR=15
+  Tavnazian Ring  -- (NO STATS IN DB)
+  Trizek Ring  -- (NO STATS IN DB)
+  Warp Ring  -- (NO STATS IN DB)
+
+=== BACK (10 items) ===
+  Aptitude Mantle +1  -- CAPACITY_BONUS=30, DEF=14
+  Bushido Cape  -- DEF=7, EVA=1, STORETP=1, SUBTLE_BLOW=1, ZANSHIN=1
+  Cerb. Mantle +1  -- ATT=15, DEF=13, ENMITY=4, FIRE_MEVA=12, STR=4
+  Cichol's Mantle  AUG[STR+20 | Accuracy+20 Attack+20 | STR+10 | Weapon skill damage +10% | Phys. dmg. taken-10%]  -- BERSERK_DURATION=15, DEF=18, DOUBLE_ATTACK_DMG=20
+  Cichol's Mantle  AUG[DEX+20 | Accuracy+20 Attack+20 | Accuracy+10 | "Store TP"+10 | Damage taken-5%]  -- BERSERK_DURATION=15, DEF=18, DOUBLE_ATTACK_DMG=20
+  Forager's Mantle  -- ATT=15, DEF=7, STR=3
+  Jaguar Mantle  -- ATT=3, DEF=4, EVA=1
+  Knightly Mantle  -- DEF=12, VIT=4
+  Nexus Cape  -- (NO STATS IN DB)
+  Nomad's Mantle +1  -- AGI=2, DEF=3, EVA=3
+
+=== WAIST (6 items) ===
+  Brave Belt  -- AGI=-1, DEF=3, DEX=-1, STR=2, VIT=2
+  Ioskeha Belt +1  -- ACC=17, DEF=17, DOUBLE_ATTACK=9, HASTE_GEAR=800
+  Sarashi  -- (NO STATS IN DB)
+  Speed Belt  -- HASTE_GEAR=600
+  Swordbelt +1  -- ATT=12, DEF=5
+  Tempus Fugit +1  -- (NO STATS IN DB)
+
+=== LEGS (20 items) ===
+  Cowardice Tonban  -- DEF=1
+  Decennial Tights +1  -- DEF=2, EQUIPMENT_ONLY_RACE=149
+  Elv. M Chausses  -- DEF=2, EQUIPMENT_ONLY_RACE=4
+  Flamma Dirs +1  -- ACC=39, AGI=16, CHR=11, CURE_POTENCY_RCVD=8, DEF=130, DEX=7, EVA=41, HASTE_GEAR=400, HP=100, INT=24, MACC=39, MDEF=5, MEVA=86, MND=14, MP=25, STORETP=7, STR=49, VIT=29
+  Flamma Dirs +2  -- (NO STATS IN DB)
+  Fourth Cuisses  -- AGI=3, DEF=30
+  Garrison Hose  -- DEF=9, DEX=1, STR=1
+  Gold Cuisses  -- DARK_MEVA=4, DEF=31, VIT=2
+  Gor. Brayettes +1  -- AGI=16, CHR=10, DEF=125, EVA=34, HASTE_GEAR=500, HP=66, INT=25, MDEF=6, MEVA=64, MND=12, STR=35, VIT=21
+  Magna M Chausses  -- AGI=2, DEF=12, DEX=2, EQUIPMENT_ONLY_RACE=4, HP=12, MP=12
+  Mythril Cuisses  -- DEF=28
+  Novennial Hose  -- DARK_MEVA=9, DEF=1, EQUIPMENT_ONLY_RACE=149, MP=9
+  Nyame Flanchard  -- ACC=40, AGI=34, ATT=30, CHR=24, DEF=169, DMG=-800, EVA=85, HASTE_GEAR=500, HP=114, INT=44, MACC=40, MAGIC_BURST_BONUS_CAPPED=6, MATT=30, MDEF=6, MEVA=150, MND=32, MP=59, RACC=40, RATT=30, SKILLCHAINDMG=600, STR=43, VIT=30
+  Perle Brayettes  -- ACC=10, DEF=37, DEX=5, ENMITY=2, HASTE_GEAR=200, VIT=5
+  Pumm. Cuisses +3  -- ACC=56, AGI=27, CHR=26, DEF=145, DMGPHYS=-500, DMGRANGE=-500, DOUBLE_ATTACK=11, EVA=52, HASTE_GEAR=600, HP=85, INT=39, MDEF=5, MEVA=100, MND=26, STR=40, VIT=27
+  Pupil's Trousers  -- (NO STATS IN DB)
+  Rage Brais  -- DEF=1
+  Sakpata's Cuisses  -- ACC=40, AGI=23, ATT=40, CHR=17, DEF=174, DMG=-900, DOUBLE_ATTACK=7, EVA=58, HASTE_GEAR=400, HP=114, INT=32, MACC=40, MDEF=9, MEVA=150, MND=21, MP=44, PHALANX_RECEIVED=5, STR=48, VIT=34
+  Studded Trousers  -- DEF=16
+  Sulev. Cuisses +2  -- (NO STATS IN DB)
+
+=== FEET (22 items) ===
+  Composer's Sabots  -- (NO STATS IN DB)
+  Cowardice Sabots  -- DEF=1
+  Elv. M Ledelsens  -- DEF=1, EQUIPMENT_ONLY_RACE=4
+  Flam. Gambieras +1  -- ACC=36, AGI=26, CHR=20, DEF=88, DEX=30, DOUBLE_ATTACK=5, EVA=74, HASTE_GEAR=200, HP=40, MACC=36, MDEF=5, MEVA=86, MND=6, MP=10, STORETP=5, STR=27, VIT=20
+  Flam. Gambieras +2  -- (NO STATS IN DB)
+  Gold Sabatons  -- DARK_MEVA=3, DEF=12, VIT=1
+  Gor. Sollerets +1  -- ACC=14, AGI=29, ATT=14, CHR=26, DEF=83, DEX=16, DMGPHYS=-300, DMGRANGE=-300, EVA=49, HASTE_GEAR=300, HP=40, MDEF=2, MEVA=64, MND=10, STR=20, VIT=17
+  Hermes' Sandals  -- DEF=17, ENMITY=3, EVA=5, HP=12, MOVE_SPEED_GEAR_BONUS=12
+  Irn.Msk. Sbtn. +1  -- DEF=11, RACC=5
+  Luisant Sollerets  -- ACC=1, ATT=1, DEF=8, DEX=1, EVA=-2, STR=1
+  Mountain Gaiters  -- DEF=7, EVA=2, INT=2, SPELLINTERRUPT=5, STR=1
+  Nyame Sollerets  -- ACC=40, AGI=46, ATT=30, CHR=38, DEF=122, DEX=26, DMG=-700, EVA=119, HASTE_GEAR=300, HP=68, INT=25, MACC=40, MAGIC_BURST_BONUS_CAPPED=5, MATT=30, MDEF=5, MEVA=150, MND=26, MP=44, RACC=40, RATT=30, SKILLCHAINDMG=500, STR=23, VIT=24
+  Perle Sollerets  -- DEF=21, DEX=3, ENMITY=2, HASTE_GEAR=200, STR=5
+  Pumm. Calligae +3  -- ACC=46, AGI=43, ATT=40, CHR=38, DEF=103, DEX=26, DOUBLE_ATTACK=9, EVA=72, HASTE_GEAR=400, HP=55, MDEF=4, MEVA=100, MND=21, STORETP=4, STR=24, VIT=31
+  Pupil's Shoes  -- (NO STATS IN DB)
+  Rage Sabatons  -- DEF=1
+  Sakpata's Leggings  -- ACC=40, AGI=35, ATT=40, CHR=32, COUNTER=5, DEF=125, DEX=20, DMG=-600, DOUBLE_ATTACK=4, EVA=91, HASTE_GEAR=200, HP=68, MACC=40, MDEF=7, MEVA=150, MND=19, MP=35, STR=29, VIT=30
+  Sprinter's Shoes  -- DEF=1
+  Sulev. Leggings +2  -- (NO STATS IN DB)
+  Tiger Ledelsens  -- ATT=3, DEF=11, FIRE_MEVA=-3, ICE_MEVA=3
+  Ucn. Leggings +1  -- DEF=26, HP=34, STR=4
+  Winged Boots  -- AGI=3, DEF=5, DEX=3
+
+=== OWNED BUT NOT WAR-EQUIPPABLE (excluded: 88) ===
+  Akasha Chaps  -- jobs: WHM, BLM, RDM, BRD, SMN, BLU, SCH, GEO
+  Anu Torque  -- jobs: MNK, RDM, THF, BST, RNG, DRG, DNC, RUN
+  Asklepios  -- jobs: WHM, BLM, SMN, SCH, GEO
+  Beestinger  -- jobs: RDM, THF, BRD, RNG, NIN
+  Buboso  -- jobs: NIN
+  Capri. Subligar  -- jobs: WHM, SMN
+  Crow Beret  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Crow Bracers  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Crow Gaiters  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Crow Hose  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Crow Jupon  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Curse Wand  -- jobs: WHM, BLM, SMN, SCH, GEO
+  Darksteel Lance  -- jobs: DRG
+  Druid's Rope  -- jobs: WHM, BLM, RDM, BRD, RNG, NIN, SMN, BLU, PUP, SCH, GEO
+  Foreshock Sword  -- jobs: PLD, DRK, RUN
+  Fuma Kyahan  -- jobs: MNK, SAM, NIN
+  Gallant Breeches  -- jobs: PLD
+  Gallant Coronet  -- jobs: PLD
+  Hachiman Domaru  -- jobs: SAM
+  Hachiman Hakama  -- jobs: SAM
+  Hachiman Jinpachi  -- jobs: SAM
+  Hachiman Kote  -- jobs: SAM
+  Hagun  -- jobs: SAM
+  Haidate  -- jobs: SAM
+  Hermit's Wand  -- jobs: WHM, BLM, RDM, SMN, BLU, SCH, GEO
+  Hmn. Sune-Ate  -- jobs: SAM
+  Holly Clogs  -- jobs: MNK, WHM, BLM, RDM, THF, DRK, BRD, RNG, SMN, BLU, COR, PUP, DNC, SCH, GEO, RUN
+  Home. Claymore  -- jobs: PLD, DRK, RUN
+  Home. Scythe  -- jobs: DRK
+  Homestead Wand  -- jobs: WHM, BLM, RDM, SMN, BLU, SCH, GEO
+  Honor Sword  -- jobs: PLD
+  Ice Lance  -- jobs: DRG
+  Irn.Msk. Gambison  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Jhakri Coronal +1  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Jhakri Cuffs +1  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Jhakri Pigaches +1  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Jhakri Ring  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Jhakri Robe +1  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Jhakri Slops +1  -- jobs: BLM, RDM, BLU, SCH, GEO
+  Juji Shuriken  -- jobs: NIN
+  Jujitsu Gi  -- jobs: MNK, SAM, NIN
+  Jujitsu Sitabaki  -- jobs: MNK, SAM, NIN
+  Juogi  -- jobs: MNK, SAM, NIN, PUP
+  Kabutowari  -- jobs: NIN
+  Koryukagemitsu  -- jobs: SAM
+  Kunai  -- jobs: NIN
+  Magoroku  -- jobs: SAM
+  Manji Shuriken  -- jobs: NIN
+  Matre Bell  -- jobs: GEO
+  Mes'yohi Slacks  -- jobs: MNK, WHM, BLM, RDM, PLD, BRD, RNG, SMN, BLU, PUP, SCH, GEO, RUN
+  Misanthropy  -- jobs: DRK
+  Mrc.Cpt. Gloves  -- jobs: MNK, WHM, RDM, THF, PLD, BST, BRD, DRG, SMN, BLU, COR, PUP, DNC, GEO, RUN
+  Myochin Domaru  -- jobs: SAM
+  Myochin Haidate  -- jobs: SAM
+  Myochin Kabuto  -- jobs: SAM
+  Myochin Kote  -- jobs: SAM
+  Myochin Sune-Ate  -- jobs: SAM
+  Nikkariaoe  -- jobs: NIN
+  Ochiudo's Kote  -- jobs: MNK, SAM, NIN
+  Omokage  -- jobs: SAM
+  Priwen  -- jobs: PLD
+  Pursuer's Beret  -- jobs: THF, RNG, NIN, COR
+  Rabbit Charm  -- jobs: THF
+  Ranger's Necklace  -- jobs: RNG
+  Royal Cloak  -- jobs: MNK, WHM, BLM, RDM, PLD, BRD, RNG, SMN, BLU, PUP, SCH, GEO, RUN
+  Rubeus Gloves  -- jobs: WHM, BLM, RDM, BRD, SMN, SCH, GEO
+  Ryl.Swd. Blade  -- jobs: PLD, RUN
+  Sakpata's Sword  -- jobs: RDM, PLD, BLU
+  Setanta's Led.  -- jobs: MNK, THF, RNG, BLU, COR, PUP, DNC, RUN
+  Shepherd's Chain  -- jobs: MNK, RDM, THF, BST, RNG, NIN, DRG, COR, PUP, DNC, RUN
+  Shm. Haidate  -- jobs: SAM
+  Shned. Boots +1  -- jobs: MNK, THF, RNG, NIN, BLU, COR, PUP, DNC, RUN
+  Shned. Chapeau +1  -- jobs: MNK, THF, RNG, NIN, BLU, COR, PUP, DNC, RUN
+  Shned. Gloves +1  -- jobs: MNK, THF, RNG, NIN, BLU, COR, PUP, DNC, RUN
+  Shned. Tabard +1  -- jobs: MNK, THF, RNG, NIN, BLU, COR, PUP, DNC, RUN
+  Shned. Tights +1  -- jobs: MNK, THF, RNG, NIN, BLU, COR, PUP, DNC, RUN
+  Shulmanu Collar  -- jobs: BST, DRG, SMN, PUP
+  Siege Bow  -- jobs: RNG
+  Sowilo Claymore  -- jobs: RUN
+  Speleogen Bow  -- jobs: RNG, SAM
+  Strider Boots  -- jobs: THF, RNG
+  Tachi of Trials  -- jobs: SAM
+  Taimakuniyuki  -- jobs: SAM, NIN
+  Tarutaru Sash  -- jobs: MNK, WHM, BLM, RDM, PLD, BRD, RNG, SMN, BLU, PUP, SCH, GEO, RUN
+  Twinthread Obi  -- jobs: MNK, WHM, BLM, RDM, PLD, BRD, RNG, SMN, BLU, PUP, SCH, GEO, RUN
+  Veela Cape  -- jobs: WHM, BLM, BRD, SMN, PUP, SCH, GEO
+  Wyvern Helm  -- jobs: DRK, BST, RNG, SAM, DRG
+  Yemaya Belt  -- jobs: MNK, WHM, RDM, THF, BST, BRD, RNG, SAM, NIN, BLU, COR, DNC, RUN
+
+=== OWNED BUT NOT IN item_jobs.json (218) ===
+  Abdhaljs Dye
+  Abdhaljs Fiber
+  Abdhaljs Matter
+  Abdhaljs Resin
+  Absorb-VIT
+  Almond
+  Amiga Cactus
+  Angelstone
+  Apple Juice
+  Aptant: Durus
+  Arborscent Seed
+  Ardor Coin
+  Ark Pentasphere
+  B.E.W. Pitaru
+  Balance Coin
+  Baramnesia
+  Barsleep
+  Bdx. Coffer Key
+  Beastcoin
+  Beastmen's Seal
+  Beitetsu
+  Beryllium Ore
+  Bind
+  Blind
+  Blm. Testimony
+  Bonanza Pearl
+  Byd. Coffer Key
+  Cactus Arm
+  Cactus Stems
+  Carnation
+  Celadon Yggrete
+  Clash of Titans
+  Cluster Core
+  Cook. Kit 40
+  Copper Voucher
+  Crab Shell
+  Crawler Cocoon
+  Cure
+  Cure II
+  Cure III
+  Darksteel Sheet
+  Davoi Coffer Key
+  Death for Dim.
+  Deathstone
+  Delkfutt Key
+  Den Coffer Key
+  Dgr. Enchiridion
+  Duskorb Stone +1
+  Earth Bead
+  Eft Skin
+  Eld. Chest Key
+  Eld. Coffer Key
+  Elixir
+  Eschalixir
+  Exalted Log
+  Fafnir's Scale
+  Faithful's Legs I
+  Faithful's Torso II
+  Falling Star
+  Fish Mithkabob
+  Footshard: THF
+  Fulfillment Crystal
+  Garlaige Key
+  Garnet
+  Ghrah M Chip
+  Gil
+  Gin's Scale
+  Gnole Claw
+  Gold Beastcoin
+  Gold Key
+  Grape Daifuku
+  Grl. Chest Key
+  Gusgen Chest Key
+  Gysahl Greens
+  H-P Bayld
+  H. Kindred Crest
+  H.Q. Crab Shell
+  H.Q. Scp. Shell
+  Hatchet
+  Hepatizon Ingot
+  Hepatizon Ore
+  Hi-Potion
+  Hope Crystal
+  Icarus Wing
+  Ice Crest Card
+  Imp. Brz. Piece
+  Instant Warp
+  Jeunoan Flag
+  Jusatsu
+  Kaginawa
+  Kindred's Crest
+  Kindred's Seal
+  Kirin's Mane
+  Kodoku
+  Kuftal Coffer Key
+  Kupon A-EMI
+  Kupon A-PK109
+  Kyou's Scale
+  Lauan Log
+  Lavarion
+  Leaforb Stone +2
+  Liminal Residue
+  Linkpearl
+  Ludwig's Report
+  Luminian Tissue
+  Luminion Chip
+  Lungo's Thesis
+  Lustreless Hide
+  Lustreless Scale
+  Lustreless Wing
+  M. Blackscale Key
+  M. Silverscale Key
+  M. Tanscale Key
+  M.Abjuration: Hn.
+  Maliya. Coral
+  Manji Sh. Pouch
+  Maringna
+  Matamata Shell
+  Meat Jerky
+  Mellidopt Wing
+  Mieuseloir's Diary
+  Moogle Amp.
+  Moonbow Urushi
+  Mtl. Beastcoin
+  Nest Chest Key
+  Noillurie's Log
+  Ntn. Coffer Key
+  Onzozo Chest Key
+  Orange Juice
+  Ormolu Ingot
+  Ozt. Coffer Key
+  Oztroja Chest Key
+  P. MNK Card
+  P. SAM Card
+  P. WAR Card
+  Paralyze
+  Pearlsack
+  Pellucid Stone
+  Penelope's Cloth
+  Pickaxe
+  Pluton
+  Prism Powder
+  Protect
+  Protect V
+  Pulchridopt Wing
+  Raid. Seal: Bd.
+  Raise
+  Raptor Skin
+  Rdm. Testimony
+  Rem's Tale Ch.10
+  Rem's Tale Ch.4
+  Rem's Tale Ch.6
+  Rem's Tale Ch.7
+  Rem's Tale Ch.8
+  Rem's Tale Ch.9
+  Remedy
+  Riftborn Boulder
+  Ruby
+  S. Astral Detritus
+  S. Kindred Crest
+  S.Abjuration: Hd.
+  Sairui-Ran
+  Sakura Biscuit
+  San d'Orian Flag
+  Sanjaku-Tenugui
+  Scorpion Claw
+  Scorpion Quiver
+  Scorpion Shell
+  Shadow Geode
+  Shell
+  Shell II
+  Shell V
+  Shihei
+  Shining Fantasia
+  Shinobi-Tabi
+  Sickle
+  Sif's Lock
+  Silence
+  Silent Oil
+  Silk Thread
+  Silver Beastcoin
+  Silver Voucher
+  Siren's Tear
+  Sneak
+  Snow Lily
+  Snowdim Stone +1
+  Snowslit Stone +2
+  Snowtip Stone +1
+  Stone IV
+  Stonega III
+  Swing and Stab
+  T. Whiteshell
+  Taru F. Screen
+  Thought Crystal
+  Tonberry Board
+  Toolbag (Jusa)
+  Toolbag (Kagi)
+  Toolbag (Kodo)
+  Toolbag (Sai)
+  Toolbag (Sanja)
+  Toolbag (Shihe)
+  Toolbag (Shino)
+  Treasury Gold
+  Twitherym Wing
+  Umbril Ooze
+  Unlit Lantern
+  Vana'clock
+  Velkk Necklace
+  Venom Potion
+  Wailing Stone +2
+  War. Testimony
+  Water Barrel
+  Water III
+  Waterga II
+  Waterga III
+  Whine Cellar Key
+  White 9D Almirah
+  Zvahl Chest Key

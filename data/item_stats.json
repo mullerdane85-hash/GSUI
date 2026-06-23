@@ -27781,6 +27781,25 @@
   "STR": 27,
   "VIT": 20
  },
+ "Flam. Gambieras +2": {
+  "DEF": 93,
+  "HP": 40,
+  "MP": 10,
+  "STR": 31,
+  "DEX": 34,
+  "VIT": 20,
+  "AGI": 26,
+  "MND": 6,
+  "CHR": 20,
+  "ACC": 42,
+  "MACC": 42,
+  "EVA": 74,
+  "MEVA": 86,
+  "MDEF": 5,
+  "HASTE_GEAR": 200,
+  "STORETP": 6,
+  "DOUBLE_ATTACK": 6
+ },
  "Flam. Manopolas +1": {
   "ACC": 37,
   "AGI": 8,
@@ -27799,6 +27818,26 @@
   "STORETP": 5,
   "STR": 19,
   "VIT": 35
+ },
+ "Flam. Manopolas +2": {
+  "DEF": 111,
+  "HP": 60,
+  "MP": 15,
+  "STR": 23,
+  "DEX": 46,
+  "VIT": 35,
+  "AGI": 8,
+  "INT": 7,
+  "MND": 24,
+  "CHR": 17,
+  "ACC": 43,
+  "MACC": 43,
+  "EVA": 36,
+  "MEVA": 48,
+  "MDEF": 2,
+  "HASTE_GEAR": 400,
+  "STORETP": 6,
+  "CRITHITRATE": 8
  },
  "Flam. Zucchetto +1": {
   "ACC": 38,
@@ -27984,6 +28023,26 @@
   "STR": 49,
   "VIT": 29
  },
+ "Flamma Dirs +2": {
+  "DEF": 135,
+  "HP": 100,
+  "MP": 25,
+  "STR": 53,
+  "DEX": 11,
+  "VIT": 29,
+  "AGI": 16,
+  "INT": 24,
+  "MND": 14,
+  "CHR": 11,
+  "ACC": 45,
+  "MACC": 45,
+  "EVA": 41,
+  "MEVA": 86,
+  "MDEF": 5,
+  "HASTE_GEAR": 400,
+  "STORETP": 8,
+  "CURE_POTENCY_RCVD": 8
+ },
  "Flamma Gambieras": {
   "ACC": 24,
   "AGI": 26,
@@ -28042,6 +28101,26 @@
   "STR": 39,
   "SUBTLE_BLOW": 15,
   "VIT": 32
+ },
+ "Flamma Korazin +2": {
+  "DEF": 153,
+  "HP": 140,
+  "MP": 35,
+  "STR": 43,
+  "DEX": 39,
+  "VIT": 32,
+  "AGI": 20,
+  "INT": 20,
+  "MND": 20,
+  "CHR": 20,
+  "ACC": 46,
+  "MACC": 46,
+  "EVA": 55,
+  "MEVA": 69,
+  "MDEF": 6,
+  "HASTE_GEAR": 200,
+  "STORETP": 9,
+  "SUBTLE_BLOW": 17
  },
  "Flamma Manopolas": {
   "ACC": 25,
@@ -50207,6 +50286,13 @@
   "MP": 17,
   "SPELLINTERRUPT": 8
  },
+ "Moonbeam Ring": {
+  "HP": 100,
+  "ACC": 5,
+  "ATT": 5,
+  "STORETP": 3,
+  "DMG": -400
+ },
  "Moonbow Belt": {
   "DEF": 20,
   "DEX": 15,
@@ -70371,6 +70457,62 @@
  "Sukezane +1": {
   "STORETP": 6
  },
+ "Sulev. Cuisses +2": {
+  "DEF": 135,
+  "HP": 50,
+  "MP": 50,
+  "STR": 47,
+  "VIT": 33,
+  "AGI": 14,
+  "INT": 24,
+  "MND": 20,
+  "CHR": 18,
+  "ACC": 45,
+  "ATT": 49,
+  "EVA": 16,
+  "MEVA": 75,
+  "MDEF": 2,
+  "HASTE_GEAR": 200,
+  "TRIPLE_ATTACK": 4,
+  "DMG": -700
+ },
+ "Sulev. Gauntlets +2": {
+  "DEF": 111,
+  "HP": 30,
+  "MP": 30,
+  "STR": 23,
+  "DEX": 34,
+  "VIT": 45,
+  "INT": 6,
+  "MND": 32,
+  "CHR": 27,
+  "ACC": 43,
+  "ATT": 47,
+  "EVA": 16,
+  "MEVA": 37,
+  "HASTE_GEAR": 300,
+  "DOUBLE_ATTACK": 6,
+  "DMG": -500
+ },
+ "Sulev. Leggings +2": {
+  "DEF": 93,
+  "HP": 20,
+  "MP": 20,
+  "STR": 29,
+  "DEX": 19,
+  "VIT": 29,
+  "AGI": 26,
+  "MND": 18,
+  "CHR": 32,
+  "ACC": 42,
+  "ATT": 46,
+  "EVA": 44,
+  "MEVA": 75,
+  "MDEF": 1,
+  "HASTE_GEAR": 100,
+  "ALL_WSDMG_ALL_HITS": 7,
+  "DMG": -400
+ },
  "Sulevia's Mask +2": {
   "ACC": 44,
   "AGI": 12,
@@ -70390,6 +70532,26 @@
   "STORETP": 10,
   "STR": 33,
   "VIT": 40
+ },
+ "Sulevia's Plate. +2": {
+  "DEF": 153,
+  "HP": 70,
+  "MP": 70,
+  "STR": 41,
+  "DEX": 24,
+  "VIT": 41,
+  "AGI": 16,
+  "INT": 16,
+  "MND": 27,
+  "CHR": 27,
+  "ACC": 46,
+  "ATT": 50,
+  "EVA": 36,
+  "MEVA": 59,
+  "MDEF": 3,
+  "HASTE_GEAR": 100,
+  "SKILLCHAINDMG": 700,
+  "DMG": -900
  },
  "Sulla Belt": {
   "ATT": 30,
@@ -75173,6 +75335,14 @@
   "STORETP": 6,
   "STR": 8
  },
+ "Unmoving Collar +1": {
+  "DEF": 41,
+  "HP": 200,
+  "VIT": 9,
+  "CHR": 9,
+  "ENMITY": 10,
+  "CHARMRES": 9
+ },
  "Unsho": {
   "DEX": 3,
   "STR": 3,
@@ -77613,6 +77783,14 @@
  },
  "Volunteer's Ring": {
   "MDEF": 3
+ },
+ "Voluspa Chopper": {
+  "GAXE": 215,
+  "PARRY": 215,
+  "MACC_SKILL": 215
+ },
+ "Voluspa Grip": {
+  "STORETP": 30
  },
  "Vorpal Sword": {
   "ADDS_WEAPONSKILL": 44
@@ -80689,6 +80867,9 @@
  "Yew Wand +1": {
   "INT": 4,
   "MND": 4
+ },
+ "Ygnas's Resolve +1": {
+  "ALL_WSDMG_ALL_HITS": 25
  },
  "Yhatdhara": {
   "ATT": 5,
