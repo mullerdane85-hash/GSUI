@@ -103,8 +103,6 @@ local elements = {
     remove_btn_bg = nil, remove_btn_text = nil,
     remove_all_btn_bg = nil, remove_all_btn_text = nil,
     reequip_btn_bg = nil, reequip_btn_text = nil,
-    save_btn_bg = nil, save_btn_text = nil,
-    load_btn_bg = nil, load_btn_text = nil,
     status_text = nil,
     drag_icon = nil,
     -- Stat panel
@@ -190,15 +188,12 @@ local state = {
     kb_filter_index = 1,
     -- Slot filter
     slot_filter = nil,
-    -- Save/load + the Remove/Remove-All split row (rects tracked here so
-    -- hit_test can distinguish the two halves now that they share a row).
-    save_btn_rect = {},
-    load_btn_rect = {},
+    -- Rects for the Remove/Remove-All split row (tracked here so hit_test can
+    -- distinguish the two halves now that they share a row).
     remove_btn_rect = {},
     remove_all_btn_rect = {},
-    saved_sets = {},
     -- GearTree integration — sets list shown in the left panel under the
-    -- Save/Load buttons. Populated by gsui.lua via ui.set_sets_data().
+    -- buttons. Populated by gsui.lua via ui.set_sets_data().
     sets_tree           = nil,
     sets_info           = nil,           -- { path, name }
     sets_flat           = nil,           -- flattened display list
@@ -208,8 +203,11 @@ local state = {
     sets_panel_rect     = {},            -- bounds for scroll wheel hit-test
     on_set_clicked      = nil,
     on_update_set       = nil,
-    saved_dropdown_open = false,
 }
+
+-- Height of one row in the sets list. Module-level because both the renderer
+-- and the scroll clamp need it.
+local SETS_ROW_H = 14
 
 -- Dimensions
 local left_panel_w = CELL * 4
@@ -228,11 +226,12 @@ local function calc_dimensions()
     inv_grid_h = CELL * INV_VISIBLE_ROWS
     local right_h = LABEL_H + inv_grid_h + SCROLL_BTN_H + 2 + FILTER_BAR_H
     content_w = left_panel_w + PANEL_GAP + right_panel_w + PANEL_GAP + TOOLTIP_W + PANEL_GAP + STAT_W
-    -- Sets-list panel slot: equipment grid + 4 button rows + sets list (~240px).
+    -- Sets-list panel slot: equipment grid + 3 button rows + sets list (~240px).
     -- 240 gives ~14 visible rows and was verified working. The earlier +420
     -- bump broke the window's vertical layout on some configs — reverted.
     -- Use scroll-wheel over the sets panel for longer files.
-    local left_total = left_panel_h + (BTN_H + SLOT_PAD) * 4 + 240
+    -- Was 4 button rows; the Save/Load row was removed.
+    local left_total = left_panel_h + (BTN_H + SLOT_PAD) * 3 + 240
     content_h = math.max(left_total, right_h)
     total_w = BORDER + SLOT_PAD + content_w + SLOT_PAD + BORDER
     total_h = BORDER + TITLE_BAR_H + SLOT_PAD + content_h + SLOT_PAD + BORDER
@@ -452,30 +451,17 @@ function ui.build()
     elements.reequip_btn_text:show()
     state.reequip_btn_rect = { x = btn_x, y = btn3_y, w = BTN_W, h = BTN_H }
 
-    -- Save / Load buttons
-    local half_btn = math.floor((BTN_W - SLOT_PAD) / 2)
-    local btn4_y = btn3_y + BTN_H + SLOT_PAD
-    elements.save_btn_bg = make_bg(btn_x, btn4_y, half_btn, BTN_H, 220, 100, 80, 35)
-    elements.save_btn_bg:show()
-    elements.save_btn_text = make_text('Save', btn_x + math.floor(half_btn / 2) - 14, btn4_y + 5, 11, 255, 255, 255, true)
-    elements.save_btn_text:show()
-
-    local load_x = btn_x + half_btn + SLOT_PAD
-    elements.load_btn_bg = make_bg(load_x, btn4_y, half_btn, BTN_H, 220, 35, 80, 100)
-    elements.load_btn_bg:show()
-    elements.load_btn_text = make_text('Load', load_x + math.floor(half_btn / 2) - 14, btn4_y + 5, 11, 255, 255, 255, true)
-    elements.load_btn_text:show()
-
-    state.save_btn_rect = { x = btn_x, y = btn4_y, w = half_btn, h = BTN_H }
-    state.load_btn_rect = { x = load_x, y = btn4_y, w = half_btn, h = BTN_H }
-
     -- === SETS LIST (GearTree integration) ===
-    -- Below the Save/Load buttons we render a scrollable list of every
-    -- gear set parsed from the active GearSwap .lua file. Clicking a
-    -- leaf set populates the equipment grid with that set's contents and
-    -- swaps the "Generate Set" button into "Update Gear" mode.
+    -- Below the buttons we render a scrollable list of every gear set parsed
+    -- from the active GearSwap .lua file. Clicking a leaf set populates the
+    -- equipment grid with that set's contents and swaps the "Generate Set"
+    -- button into "Update Gear" mode.
+    --
+    -- The Save/Load buttons that used to sit here were removed: they only
+    -- printed a "use /gsui save <name>" hint to chat rather than doing
+    -- anything. The chat commands still work. Their row now goes to the list.
     local sets_x = btn_x
-    local sets_y = btn4_y + BTN_H + SLOT_PAD * 2
+    local sets_y = btn3_y + BTN_H + SLOT_PAD * 2
     local sets_w = BTN_W
     local sets_h = math.max(180, content_h - (sets_y - cy) - SLOT_PAD)
 
@@ -737,10 +723,6 @@ function ui.build()
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
         hide_element(elements.reequip_btn_text)
-        hide_element(elements.save_btn_bg)
-        hide_element(elements.save_btn_text)
-        hide_element(elements.load_btn_bg)
-        hide_element(elements.load_btn_text)
         hide_element(elements.status_text)
         -- Sets panel (GearTree integration)
         hide_element(elements.sets_header_bg)
@@ -1048,11 +1030,70 @@ end
 -- safely push data without crashes while the visual layer is being built.
 -- =============================================================================
 
+-- A node's path is an array of keys; join it into something usable as a
+-- table key so view state can be matched across a re-parse.
+local function path_key(node)
+    if not node or not node.path then return nil end
+    return table.concat(node.path, '\0')
+end
+
+-- Which nodes were expanded, keyed by path. A fresh parse builds every node
+-- with expanded = false, so without this a refresh collapses the whole tree.
+local function snapshot_expanded(root)
+    local out = {}
+    local function walk(n)
+        if not n then return end
+        if n.expanded then
+            local k = path_key(n)
+            if k then out[k] = true end
+        end
+        for _, c in ipairs(n.children or {}) do walk(c) end
+    end
+    walk(root)
+    return out
+end
+
+local function restore_expanded(root, saved)
+    if not root or not saved then return end
+    local function walk(n)
+        local k = path_key(n)
+        if k and saved[k] then n.expanded = true end
+        for _, c in ipairs(n.children or {}) do walk(c) end
+    end
+    walk(root)
+end
+
+-- Largest valid scroll offset for the current flattened list.
+local function max_sets_scroll()
+    if not state.sets_flat or #state.sets_flat == 0 then return 0 end
+    local content_h = #state.sets_flat * SETS_ROW_H
+    local visible_h = (state.sets_panel_rect and state.sets_panel_rect.h) or 200
+    return math.max(0, content_h - visible_h)
+end
+
 function ui.set_sets_data(tree, info)
+    -- Re-pushing the SAME file (which is what "Update Gear" does after it
+    -- rewrites the .lua) must not throw the user back to the top of the sets
+    -- list. Only switching to a genuinely different file resets the view.
+    local same_file = state.sets_info ~= nil and info ~= nil
+        and state.sets_info.path ~= nil and info.path ~= nil
+        and state.sets_info.path == info.path
+
+    local prev_scroll   = state.sets_scroll or 0
+    local prev_sel_path = state.sets_selected_node and state.sets_selected_node.path
+    local prev_expanded = same_file and snapshot_expanded(state.sets_tree) or nil
+
     state.sets_tree = tree
     state.sets_info = info
     state.sets_selected_node = nil
     state.sets_scroll = 0
+
+    -- Expansion has to be restored before flattening, since flatten only walks
+    -- into children of nodes that are expanded.
+    if same_file and prev_expanded then
+        restore_expanded(tree, prev_expanded)
+    end
+
     -- Flatten for display; tree_mod.flatten returns { {node, depth}, ... }
     if tree then
         local ok, tree_mod = pcall(require, 'libs/gear_tree/tree')
@@ -1061,6 +1102,20 @@ function ui.set_sets_data(tree, info)
         end
     else
         state.sets_flat = nil
+    end
+
+    if same_file then
+        -- Re-resolve the selection in the new tree by path; node identity does
+        -- not survive a re-parse but the path does.
+        if prev_sel_path and tree then
+            local ok_tm, tree_mod = pcall(require, 'libs/gear_tree/tree')
+            if ok_tm and tree_mod and tree_mod.find then
+                local found = tree_mod.find(tree, prev_sel_path)
+                if found then state.sets_selected_node = found end
+            end
+        end
+        -- Clamp, in case the rewrite made the list shorter.
+        state.sets_scroll = math.max(0, math.min(max_sets_scroll(), prev_scroll))
     end
     -- Trigger a redraw so the panel reflects the new data. ui.build()
     -- already created the header/bg elements on init; we just need to
@@ -1160,7 +1215,6 @@ function ui.refresh_sets_panel()
 
     if not state.sets_flat or #state.sets_flat == 0 then return end
 
-    local SETS_ROW_H = 14
     local INDENT_PX  = 10
     local rows_visible = math.floor(rect.h / SETS_ROW_H)
     local first = math.max(1, math.floor(state.sets_scroll / SETS_ROW_H) + 1)
@@ -1222,11 +1276,7 @@ end
 -- Scroll handler — called from the mouse wheel handler in gsui.lua.
 function ui.scroll_sets_panel(delta)
     if not state.sets_flat or #state.sets_flat == 0 then return false end
-    local SETS_ROW_H = 14
-    local content_h = #state.sets_flat * SETS_ROW_H
-    local visible_h = (state.sets_panel_rect and state.sets_panel_rect.h) or 200
-    local max_scroll = math.max(0, content_h - visible_h)
-    state.sets_scroll = math.max(0, math.min(max_scroll, state.sets_scroll + delta))
+    state.sets_scroll = math.max(0, math.min(max_sets_scroll(), state.sets_scroll + delta))
     ui.refresh_sets_panel()
     return true
 end
@@ -1639,15 +1689,6 @@ function ui.hit_test(mx, my)
         if mx >= bx and mx <= bx + BTN_W and my >= btn3_y and my <= btn3_y + BTN_H then
             return { type = 'reequip_btn' }
         end
-        -- Save / Load buttons
-        local sr = state.save_btn_rect
-        if sr and sr.x and mx >= sr.x and mx <= sr.x + sr.w and my >= sr.y and my <= sr.y + sr.h then
-            return { type = 'save_btn' }
-        end
-        local lr = state.load_btn_rect
-        if lr and lr.x and mx >= lr.x and mx <= lr.x + lr.w and my >= lr.y and my <= lr.y + lr.h then
-            return { type = 'load_btn' }
-        end
         -- Sets list rows (GearTree integration). Each row gets a rect
         -- pushed into state.sets_rects when refresh_sets_panel() runs.
         for _, r in ipairs(state.sets_rects or {}) do
@@ -1819,10 +1860,6 @@ function ui.show()
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
         show_element(elements.reequip_btn_text)
-        show_element(elements.save_btn_bg)
-        show_element(elements.save_btn_text)
-        show_element(elements.load_btn_bg)
-        show_element(elements.load_btn_text)
         show_element(elements.status_text)
         -- Sets panel (GearTree integration)
         show_element(elements.sets_header_bg)
@@ -1892,10 +1929,6 @@ function ui.hide()
     hide_element(elements.remove_all_btn_text)
     hide_element(elements.reequip_btn_bg)
     hide_element(elements.reequip_btn_text)
-    hide_element(elements.save_btn_bg)
-    hide_element(elements.save_btn_text)
-    hide_element(elements.load_btn_bg)
-    hide_element(elements.load_btn_text)
     hide_element(elements.status_text)
     hide_element(elements.drag_icon)
     hide_element(elements.tab_gs_bg)
@@ -2019,8 +2052,6 @@ function ui.bring_to_front()
     bump(elements.remove_btn_bg); bump(elements.remove_btn_text)
     bump(elements.remove_all_btn_bg); bump(elements.remove_all_btn_text)
     bump(elements.reequip_btn_bg); bump(elements.reequip_btn_text)
-    bump(elements.save_btn_bg); bump(elements.save_btn_text)
-    bump(elements.load_btn_bg); bump(elements.load_btn_text)
     bump(elements.sort_toggle_bg); bump(elements.sort_toggle_text)
     bump(elements.stack_btn_bg); bump(elements.stack_btn_text)
     -- Scroll buttons + filter dropdown
@@ -2071,8 +2102,6 @@ function ui.get_button_rect(name)
     if name == 'remove'     then return state.remove_btn_rect     end
     if name == 'remove_all' then return state.remove_all_btn_rect end
     if name == 'reequip'    then return state.reequip_btn_rect    end
-    if name == 'save'       then return state.save_btn_rect       end
-    if name == 'load'       then return state.load_btn_rect       end
     return nil
 end
 
@@ -2152,10 +2181,6 @@ function ui.destroy()
     destroy_element(elements.remove_all_btn_text)
     destroy_element(elements.reequip_btn_bg)
     destroy_element(elements.reequip_btn_text)
-    destroy_element(elements.save_btn_bg)
-    destroy_element(elements.save_btn_text)
-    destroy_element(elements.load_btn_bg)
-    destroy_element(elements.load_btn_text)
     -- Sets panel (GearTree integration) — without these, the header
     -- text accumulates on every ui.build() call and you get the
     -- "Sets (no GS file)" labels piled on top of each other.
@@ -2220,8 +2245,6 @@ function ui.destroy()
         generate_btn_bg = nil, generate_btn_text = nil,
         remove_all_btn_bg = nil, remove_all_btn_text = nil,
         reequip_btn_bg = nil, reequip_btn_text = nil,
-        save_btn_bg = nil, save_btn_text = nil,
-        load_btn_bg = nil, load_btn_text = nil,
         scroll_up = nil, scroll_down = nil, drag_icon = nil,
         filter_dropdown = nil, filter_menu = nil, filter_menu_items = {},
         equip_icons = {}, inv_icons = {}, equip_labels = {},
@@ -2274,10 +2297,6 @@ function ui.set_mode(mode)
         show_element(elements.remove_all_btn_text)
         show_element(elements.reequip_btn_bg)
         show_element(elements.reequip_btn_text)
-        show_element(elements.save_btn_bg)
-        show_element(elements.save_btn_text)
-        show_element(elements.load_btn_bg)
-        show_element(elements.load_btn_text)
         show_element(elements.status_text)
         -- Sets panel (GearTree integration)
         show_element(elements.sets_header_bg)
@@ -2316,10 +2335,6 @@ function ui.set_mode(mode)
         hide_element(elements.remove_all_btn_text)
         hide_element(elements.reequip_btn_bg)
         hide_element(elements.reequip_btn_text)
-        hide_element(elements.save_btn_bg)
-        hide_element(elements.save_btn_text)
-        hide_element(elements.load_btn_bg)
-        hide_element(elements.load_btn_text)
         hide_element(elements.status_text)
         -- Sets panel (GearTree integration)
         hide_element(elements.sets_header_bg)
@@ -2851,8 +2866,6 @@ local function kb_button_list()
     if state.remove_btn_rect   then L[#L+1] = { name = 'remove',     rect = state.remove_btn_rect   } end
     if state.remove_all_btn_rect then L[#L+1] = { name = 'remove_all', rect = state.remove_all_btn_rect } end
     if state.reequip_btn_rect  then L[#L+1] = { name = 'reequip',    rect = state.reequip_btn_rect  } end
-    if state.save_btn_rect     then L[#L+1] = { name = 'save',       rect = state.save_btn_rect     } end
-    if state.load_btn_rect     then L[#L+1] = { name = 'load',       rect = state.load_btn_rect     } end
     return L
 end
 

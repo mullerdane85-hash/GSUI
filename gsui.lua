@@ -1643,29 +1643,10 @@ local function handle_click(mx, my)
         ui.set_status(('Equip Now: %d sent, %d skipped.'):format(sent, #skipped))
         windower.add_to_chat(207, msg)
         return true
-    elseif hit.type == 'save_btn' then
-        if set_gen.has_items() then
-            -- Prompt for name via chat
-            ui.set_status('Use: /gsui save <name>')
-            windower.add_to_chat(207, 'GSUI: Use /gsui save <name> to save current set.')
-        else
-            ui.set_status('No items to save.')
-        end
-        return true
-    elseif hit.type == 'load_btn' then
-        local sets = set_gen.list_sets()
-        if #sets == 0 then
-            ui.set_status('No saved sets.')
-            windower.add_to_chat(207, 'GSUI: No saved sets found.')
-        else
-            windower.add_to_chat(207, 'GSUI: Saved sets:')
-            for _, name in ipairs(sets) do
-                windower.add_to_chat(207, '  ' .. name)
-            end
-            ui.set_status('Use: /gsui load <name>')
-            windower.add_to_chat(207, 'GSUI: Use /gsui load <name> to load a set.')
-        end
-        return true
+    -- The Save / Load buttons were removed from the UI. They only printed a
+    -- "use /gsui save <name>" hint rather than doing anything, and the row was
+    -- better spent on the sets list. The /gsui save and /gsui load chat
+    -- commands are unchanged.
     elseif hit.type == 'equip_slot' then
         -- Left-click on equip slot: toggle slot filter so the inventory pane
         -- shows only items eligible for that slot. Works whether the slot
