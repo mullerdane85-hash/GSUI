@@ -1064,11 +1064,29 @@ local function restore_expanded(root, saved)
 end
 
 -- Largest valid scroll offset for the current flattened list.
+--
+-- This MUST be quantized to whole rows. refresh_sets_panel() derives the
+-- first visible row with math.floor(sets_scroll / SETS_ROW_H) + 1 and then
+-- renders exactly math.floor(rect.h / SETS_ROW_H) rows -- both truncate.
+-- The old formula (content_h - visible_h) returned a pixel offset that
+-- assumed the panel could show a partial trailing row, so whenever the
+-- panel height was not an exact multiple of SETS_ROW_H the arithmetic
+-- landed one row short and the FINAL entry could never be scrolled into
+-- view. rect.h is sets_h - LABEL_H, i.e. (>=180) - 18, so hitting an exact
+-- multiple of 14 was a 1-in-14 coincidence -- in practice the last set in
+-- every GearSwap file was permanently unreachable. On the BLU file that
+-- meant sets.engaged, the last top-level set, simply never appeared.
+--
+-- Returning (rows - rows_visible) * SETS_ROW_H makes the bottom of the
+-- scroll range line up with row #rows exactly:
+--   first = (rows - rows_visible) + 1
+--   last  = min(rows, first + rows_visible - 1) = rows
 local function max_sets_scroll()
     if not state.sets_flat or #state.sets_flat == 0 then return 0 end
-    local content_h = #state.sets_flat * SETS_ROW_H
     local visible_h = (state.sets_panel_rect and state.sets_panel_rect.h) or 200
-    return math.max(0, content_h - visible_h)
+    local rows_visible = math.floor(visible_h / SETS_ROW_H)
+    if rows_visible < 1 then rows_visible = 1 end
+    return math.max(0, (#state.sets_flat - rows_visible) * SETS_ROW_H)
 end
 
 function ui.set_sets_data(tree, info)
