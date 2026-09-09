@@ -610,8 +610,14 @@ local filter_master_list = {
     { name = 'Pet: MAB',           pattern = '[Pp]et:.*[Mm]ag.*[Aa]tk' },
     { name = 'Pet: Regen',         pattern = '[Pp]et:.*[Rr]egen' },
     -- BST
-    { name = 'Charm',              pattern = '[Cc]harm' },
-    { name = 'Reward',             pattern = '[Rr]eward' },
+    -- Charm and Reward are ABILITY names, not stat lines, so they get the
+    -- quoted treatment: bare '[Rr]eward' matched every Ambuscade voucher
+    -- ("exchange for Ambuscade rewards") and Arke's Coffer ("a reward for
+    -- vanquishing Arke") -- 106 false hits against 55 real ones. Bare
+    -- '[Cc]harm' matched Solemnity Cape's '"Resist Charm"+15', a different
+    -- ability entirely.
+    { name = 'Charm',              pattern = { quoted = 'Charm'  } },
+    { name = 'Reward',             pattern = { quoted = 'Reward' } },
     -- BRD
     { name = 'Song Duration',      pattern = '[Ss]ong.*[Dd]uration' },
     { name = 'Song Recast',        pattern = '[Ss]ong.*[Rr]ecast' },
@@ -681,11 +687,38 @@ function inventory_scanner.matches_filter(item_info, pattern)
     --                                   from libs/ja_enhance.lua because the
     --                                   underlying bonus is on the base item
     --                                   tooltip, not in any text we can scan.
-    if type(pattern) == 'table' and pattern.name_set then
+    --   table { quoted = 'Reward', name_set = {...} }
+    --                                -- an ability/spell filter. See below.
+    if type(pattern) == 'table' and (pattern.name_set or pattern.quoted) then
         local target = item_info.name or item_info.english or item_info.en
-        if not target then return false end
-        for _, n in ipairs(pattern.name_set) do
-            if target == n then return true end
+        if target and pattern.name_set then
+            for _, n in ipairs(pattern.name_set) do
+                if target == n then return true end
+            end
+        end
+        -- Text side: the name must appear as a COMPLETE QUOTED TOKEN.
+        --
+        -- FFXI always quotes an ability or spell name when gear enhances it
+        -- ('Enhances "Reward" effect', '"Berserk" duration'), and never quotes
+        -- the word when it is ordinary prose. Matching the bare word was the
+        -- bug: "Reward" hit 106 items whose description merely reads "a reward
+        -- for vanquishing Arke" or "Ambuscade rewards", against 55 real ones.
+        --
+        -- The quotes must be part of the search, not just adjacent to it.
+        -- Solemnity Cape carries '"Resist Charm"+15' -- quoted, but a
+        -- DIFFERENT ability. Searching for the literal '"Charm"' does not
+        -- match inside '"Resist Charm"', because the character before Charm
+        -- there is a space, not a quote. Bare-substring matching got this
+        -- wrong too.
+        if pattern.quoted then
+            local needle = '"' .. pattern.quoted .. '"'
+            if item_info.description
+               and item_info.description:find(needle, 1, true) then return true end
+            if item_info.augments then
+                for _, aug in ipairs(item_info.augments) do
+                    if aug:find(needle, 1, true) then return true end
+                end
+            end
         end
         return false
     end
@@ -704,6 +737,52 @@ end
 -- Escape special Lua pattern characters for literal matching
 local function escape_pattern(str)
     return str:gsub('([%(%)%.%%%+%-%*%?%[%]%^%$])', '%%%1')
+end
+
+-- Every job ability the CURRENT main/sub job can use, by name.
+-- windower.ffxi.get_abilities() already returns exactly the set available for
+-- the equipped job pair, so there is no job-mask arithmetic to get wrong.
+-- Wrapped in pcall so this module stays loadable outside the game (tests).
+local function current_job_abilities()
+    local out = {}
+    local ok, ab = pcall(function() return windower.ffxi.get_abilities() end)
+    if not ok or type(ab) ~= 'table' then return out end
+    for _, list_name in ipairs({'job_abilities', 'job_traits'}) do
+        local list = ab[list_name]
+        if type(list) == 'table' then
+            for _, id in pairs(list) do
+                local a = res.job_abilities and res.job_abilities[id]
+                if a and a.en then out[a.en] = true end
+            end
+        end
+    end
+    return out
+end
+
+-- Every spell the player KNOWS that the current main or sub job can actually
+-- cast. get_spells() returns everything ever learned across all jobs, so it
+-- has to be intersected with res.spells[id].levels for the equipped pair --
+-- otherwise a WHM sees their BLM nukes in the list.
+local function current_job_spells()
+    local out = {}
+    local ok_s, known = pcall(function() return windower.ffxi.get_spells() end)
+    if not ok_s or type(known) ~= 'table' then return out end
+    local main_id, sub_id
+    local ok_p, p = pcall(function() return windower.ffxi.get_player() end)
+    if ok_p and type(p) == 'table' then
+        main_id, sub_id = p.main_job_id, p.sub_job_id
+    end
+    for id, is_known in pairs(known) do
+        if is_known then
+            local sp = res.spells and res.spells[id]
+            if sp and sp.en and type(sp.levels) == 'table' then
+                if (main_id and sp.levels[main_id]) or (sub_id and sp.levels[sub_id]) then
+                    out[sp.en] = true
+                end
+            end
+        end
+    end
+    return out
 end
 
 function inventory_scanner.find_active_filters(items, mode)
@@ -750,7 +829,9 @@ function inventory_scanner.find_active_filters(items, mode)
     end
     for ability in pairs(found_abilities) do
         if not seen_names[ability:lower()] then
-            table.insert(matched, { name = ability, pattern = escape_pattern(ability) })
+            -- quoted, not escape_pattern: see matches_filter for why a bare
+            -- substring made "Reward" match every Ambuscade voucher.
+            table.insert(matched, { name = ability, pattern = { quoted = ability } })
             -- IMPORTANT: also mark this ability as seen so the JA-enhance
             -- name lookup below doesn't add a second filter for the same JA.
             -- Without this, an item with both an "Enhances X" augment AND a
@@ -760,42 +841,81 @@ function inventory_scanner.find_active_filters(items, mode)
         end
     end
 
-    -- JA-enhance via curated name lookup. Catches base relic/empyrean/AF
-    -- bonuses that are real on the in-game tooltip but invisible to the
-    -- description-text scan above because res.items has description = nil.
-    -- See libs/ja_enhance.lua for the source-of-truth table sourced from
-    -- BG-Wiki.
-    local ok_ja, ja_enhance = pcall(require, 'libs/ja_enhance')
-    if ok_ja and type(ja_enhance) == 'table' then
-        -- Build a quick name lookup of owned items for the inner loop.
-        local owned_names = {}
-        for _, item in ipairs(items) do
-            local nm = item.name or item.english or item.en
-            if nm then owned_names[nm] = true end
-        end
-        for ja_name, enhancer_names in pairs(ja_enhance) do
-            -- Skip if a filter with this name is already in the list (the
-            -- aug-text scan above may have hit Bolster/Astral Flow already).
-            if not seen_names[ja_name:lower()] then
-                for _, enhancer in ipairs(enhancer_names) do
-                    if owned_names[enhancer] then
-                        table.insert(matched, {
-                            name = ja_name,
-                            pattern = { name_set = enhancer_names },
-                        })
-                        seen_names[ja_name:lower()] = true
-                        break
-                    end
-                end
-            end
+    -- libs/ja_enhance.lua used to feed this list a curated JA -> item map.
+    -- It is no longer consulted, because it is wrong far more often than it
+    -- is right: audited against res/item_descriptions.lua, 689 of its 736
+    -- pairs are contradicted by the item's own description, and only 47 are
+    -- confirmed. It claimed Ebers Mitts enhances "Sacrosanctity"; the item
+    -- actually reads '"Divine Caress"+5'. Filtering for Sacrosanctity
+    -- therefore returned a glove that has nothing to do with it.
+    --
+    -- The premise behind the table was also mistaken. Its header says the
+    -- descriptions are unavailable ("res.items has description = nil") --
+    -- true of res.items, but descriptions live in res.item_descriptions,
+    -- which this scanner already reads and which covers every one of those
+    -- 736 items. The game tells us the truth directly, so ask it instead of
+    -- a hand-maintained copy that can drift.
+
+    -- ------------------------------------------------------------------
+    -- Complete the ability / spell coverage for the CURRENT job.
+    --
+    -- Everything above only surfaces a filter when the player already owns a
+    -- piece that enhances it. That hides most of a job's kit: on WHM, six of
+    -- the ten job abilities had no filter at all, purely because the relic
+    -- (Piety) gear that enhances them isn't owned yet. You cannot go looking
+    -- for gear through a filter that only appears once you already have the
+    -- gear.
+    --
+    -- So: offer every job ability the current main/sub can use, and every
+    -- known spell it can cast, whether or not anything in the bags matches.
+    -- An empty result is a useful answer -- it means "you own nothing for
+    -- this" -- and the entry starts working the moment a piece is acquired.
+    -- ------------------------------------------------------------------
+    local ja_names    = current_job_abilities()
+    local spell_names = current_job_spells()
+
+    local abilities, spells, stats = {}, {}, {}
+    for _, f in ipairs(matched) do
+        if ja_names[f.name] then
+            abilities[#abilities + 1] = f
+        elseif spell_names[f.name] then
+            spells[#spells + 1] = f
+        else
+            stats[#stats + 1] = f
         end
     end
 
-    table.sort(matched, function(a, b) return a.name < b.name end)
-    local active = {{ name = 'All', pattern = nil }}
-    for _, f in ipairs(matched) do
-        table.insert(active, f)
+    -- Anything the job can do that wasn't already surfaced above.
+    for name in pairs(ja_names) do
+        if not seen_names[name:lower()] then
+            abilities[#abilities + 1] = { name = name, pattern = { quoted = name } }
+            seen_names[name:lower()] = true
+        end
     end
+    for name in pairs(spell_names) do
+        if not seen_names[name:lower()] then
+            spells[#spells + 1] = { name = name, pattern = { quoted = name } }
+            seen_names[name:lower()] = true
+        end
+    end
+
+    -- Case-insensitive, so "Sacred Trust" sorts next to "Sacrosanctity"
+    -- instead of after every capitalised entry (Lua's < is byte order, which
+    -- puts every uppercase letter ahead of every lowercase one).
+    local function by_name(a, b) return a.name:lower() < b.name:lower() end
+    table.sort(abilities, by_name)
+    table.sort(spells,    by_name)
+    table.sort(stats,     by_name)
+
+    local active = {{ name = 'All', pattern = nil }}
+    local function add_section(label, list)
+        if #list == 0 then return end
+        table.insert(active, { name = label, divider = true })
+        for _, f in ipairs(list) do table.insert(active, f) end
+    end
+    add_section('-- Job Abilities --', abilities)
+    add_section('-- Spells --',        spells)
+    add_section('-- Stats --',         stats)
     -- Slot filters belong to Organizer mode only -- in GearSwap mode
     -- the user already has the 16-icon equip grid which they can click
     -- to filter by slot, so the dropdown should keep its full surface
