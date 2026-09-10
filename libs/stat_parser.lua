@@ -76,6 +76,9 @@ local stat_defs = {
         '[Ss]pell [Ii]nterrupt.*%s*%-(%d+)',
         -- 2. Augment text         "Spell interruption rate down +N%" (Nodens Gorget)
         'Spell interruption rate down%s*%+(%d+)',
+        -- 2b. DESCRIPTION form: "Spell interruption rate down 20%" -- no sign
+        -- at all. 8 owned items say it this way and none of them matched.
+        '[Ss]pell interruption rate down%s*(%d+)',
         -- 3. Variant phrasings    "Spellcast interruption -N%"
         '[Ss]pellcast interruption%s*%-(%d+)',
         -- 4. Community shorthand  "SIRD +N%"
@@ -92,15 +95,20 @@ local stat_defs = {
         'Pet: Mag%. Acc%.%s*%+(%d+)',
         -- Abbreviated form seen on Apogee gear etc.
         'Pet: M%.Acc%.%s*%+(%d+)',
+        -- Spelled out in the item DESCRIPTION: Deino Collar, Adad Amulet
+        'Pet: Magic Accuracy%s*%+(%d+)',
     } },
-    { key = 'pet_mab',     name = 'Pet: MAB',          cap = nil,  suffix = '',   patterns = {'Pet: "Mag%.Atk%.Bns%."%s*%+(%d+)', 'Pet: MAB%s*%+(%d+)'} },
+    { key = 'pet_mab',     name = 'Pet: MAB',          cap = nil,  suffix = '',   patterns = {'Pet: "Mag%.Atk%.Bns%."%s*%+(%d+)', 'Pet: MAB%s*%+(%d+)',
+        'Pet: Magic Atk%.? Bonus%s*%+(%d+)'} },
     { key = 'pet_acc',     name = 'Pet: Accuracy',     cap = nil,  suffix = '',   patterns = {'Pet: Acc%.%s*%+(%d+)', 'Pet: Accuracy%s*%+(%d+)'} },
     { key = 'pet_ratk',    name = 'Pet: R.Atk',        cap = nil,  suffix = '',   patterns = {
         'Pet: R%.Atk%.%s*%+(%d+)',
         -- "Pet: Rng.Atk." seen on PUP / BST gear
         'Pet: Rng%.Atk%.%s*%+(%d+)',
+        'Pet: Ranged Attack%s*%+(%d+)',
     } },
-    { key = 'pet_racc',    name = 'Pet: R.Acc',        cap = nil,  suffix = '',   patterns = {'Pet: R%.Acc%.%s*%+(%d+)', 'Pet: Rng%. Acc%.%s*%+(%d+)'} },
+    { key = 'pet_racc',    name = 'Pet: R.Acc',        cap = nil,  suffix = '',   patterns = {'Pet: R%.Acc%.%s*%+(%d+)', 'Pet: Rng%. Acc%.%s*%+(%d+)',
+        'Pet: Ranged Accuracy%s*%+(%d+)'} },
     { key = 'pet_mdmg',    name = 'Pet: M.Dmg.',       cap = nil,  suffix = '',   patterns = {
         'Pet: Mag%. Dmg%.%s*%+(%d+)',
         'Pet: M%.Dmg%.%s*%+(%d+)',
@@ -191,6 +199,8 @@ local stat_defs = {
         -- Theophany / Inyanga +3 set bonus, Magic Burst gear
         'Mag%. crit%. hit dmg%.%s*%+(%d+)',
         'Magic crit%. hit damage%s*%+(%d+)',
+        -- Amalric Doublet: "Magic critical hit damage +8%"
+        '[Mm]agic critical hit damage%s*%+(%d+)',
     } },
     { key = 'tp_bonus',    name = 'TP Bonus',          cap = nil,  suffix = '',   patterns = {
         -- "TP Bonus +N" — Naegling, Tauret, Kannagi, others
@@ -345,11 +355,15 @@ local stat_defs = {
         'Evasion%s*%+(%d+)',
         'Eva%.%s*%+(%d+)',
     }, exclude = {'Mag', 'Pet'} },
+    -- Enmity is the one stat that genuinely runs both directions: tanks
+    -- stack +, everyone else stacks -. `signed` tells extract_value to keep
+    -- the sign the game wrote instead of returning the magnitude.
     { key = 'enmity',      name = 'Enmity',            cap = nil,  suffix = '',   patterns = {
-        -- Enmity can be + (tank) or - (DPS). Captured separately.
         'Enmity%s*%+(%d+)',
         'Enmity%s*%-(%d+)',
-    }, exclude = {'Pet'} },
+        '"Enmity"%s*%+(%d+)',
+        '"Enmity"%s*%-(%d+)',
+    }, signed = true, exclude = {'Pet'} },
     -- Healing
     { key = 'cure_pot',    name = 'Cure Potency',      cap = 50,   suffix = '%',  patterns = {
         -- 1. BG-Wiki full        "Cure Potency +N%"
@@ -397,6 +411,7 @@ local stat_defs = {
     -- Pet base stats. Each strips its own "Pet: " prefix during exclude
     -- handling on the main stat parser. Kept compact since they all share
     -- the same shape; add more as they appear in gs_export sweeps.
+    { key = 'pet_hp',      name = 'Pet: HP',           cap = nil,  suffix = '',   patterns = {'Pet: HP%s*%+(%d+)'} },
     { key = 'pet_str',     name = 'Pet: STR',          cap = nil,  suffix = '',   patterns = {'Pet: STR%s*%+(%d+)'} },
     { key = 'pet_dex',     name = 'Pet: DEX',          cap = nil,  suffix = '',   patterns = {'Pet: DEX%s*%+(%d+)'} },
     { key = 'pet_vit',     name = 'Pet: VIT',          cap = nil,  suffix = '',   patterns = {'Pet: VIT%s*%+(%d+)'} },
@@ -447,10 +462,18 @@ local stat_defs = {
     { key = 'parrying',   name = 'Parrying Rate',      cap = nil,  suffix = '%',  patterns = {
         'Parrying rate%s*%+(%d+)',
     } },
+    -- Separate from Parrying Rate: this is skill POINTS, not a percentage,
+    -- and it is what weapons actually carry ("Parrying skill +242" on
+    -- Naegling, Colada, Tanmogayi and 30 others here).
+    { key = 'parry_skill',name = 'Parrying Skill',     cap = nil,  suffix = '',   patterns = {
+        '[Pp]arrying skill%s*%+(%d+)',
+    } },
     -- Breath damage taken (DRG / dragoon-specific)
     { key = 'breath_dt',  name = 'Breath Dmg Taken',   cap = 50,   suffix = '%',  patterns = {
         '[Bb]reath dmg%. taken%s*%-(%d+)',
         '[Bb]reath damage taken%s*%-(%d+)',
+        -- Zwazo Earring writes it "Breath Damage taken-1%" (capital D)
+        '[Bb]reath [Dd]amage taken%s*%-(%d+)',
     }, negative = true },
     -- Weapon delay reduction (Trial / Aeonic / Mythic)
     { key = 'delay_red',  name = 'Weapon Delay',       cap = nil,  suffix = '',   patterns = {
@@ -466,6 +489,8 @@ local stat_defs = {
     { key = 'cap_point',  name = 'Cap. Point',         cap = nil,  suffix = '%',  patterns = {
         'Cap%. Point%s*%+(%d+)',
         'Capacity Point%s*%+(%d+)',
+        -- Aptitude Mantle +1: "Capacity point bonus: +30%"
+        '[Cc]apacity point bonus:?%s*%+(%d+)',
     } },
     -- Weapon Skill Accuracy (Aeonic weapons / Empyrean +3)
     { key = 'ws_acc',     name = 'WS Accuracy',        cap = nil,  suffix = '',   patterns = {
@@ -494,13 +519,28 @@ local stat_defs = {
         '[Gg]eomancy [Ss]kill%s*%+(%d+)',
     } },
     -- ---------- Spell effect durations ----------
+    -- The augment shorthand below is what gs_export writes; the in-game
+    -- DESCRIPTION says it quite differently -- '"Regen" effect duration +26',
+    -- 'Song effect duration +17%', '"Berserk" duration +20'. Only the
+    -- shorthand was covered, so this stat never once fired across 724 owned
+    -- items. Indicolure is excluded so it lands in Indi. Eff. Dur. instead of
+    -- being counted in both rows.
     { key = 'enh_dur',    name = 'Enh. Mag. Dur.',     cap = nil,  suffix = '',   patterns = {
         'Enh%. Mag%. eff%. dur%.%s*%+(%d+)',
         '[Ee]nhancing magic effect duration%s*%+(%d+)',
-    } },
+        '[Ee]ffect duration%s*%+(%d+)',
+        '"%s*duration%s*%+(%d+)',
+        '" duration%s*%+(%d+)',
+    }, exclude = {'Indicolure'} },
+    -- Real description forms: '"Indicolure" spell duration +15' (Bagua
+    -- Pants +1, Solstice) and 'Indicolure effect duration +20'
+    -- (Nantosuelta's Cape). Neither matched the augment shorthand.
     { key = 'indi_dur',   name = 'Indi. Eff. Dur.',    cap = nil,  suffix = '',   patterns = {
         'Indi%. eff%. dur%.%s*%+(%d+)',
         'Indi effect duration%s*%+(%d+)',
+        '"Indicolure" spell duration%s*%+(%d+)',
+        'Indicolure effect duration%s*%+(%d+)',
+        'Indicolure[^%d%+%-]*%+(%d+)',
     } },
     { key = 'helix_dur',  name = 'Helix Eff. Dur.',    cap = nil,  suffix = '',   patterns = {
         'Helix eff%. dur%.%s*%+(%d+)',
@@ -513,7 +553,7 @@ local stat_defs = {
 -- text before matching, e.g. exclude={'Mag'} on a stat 'Accuracy' will strip
 -- "Magic Accuracy+44" out of "Accuracy+44 Magic Accuracy+44" so the simple
 -- 'Accuracy' pattern only sees the +44 we care about.
-local function extract_value(text, patterns, exclude)
+local function extract_value(text, patterns, exclude, signed)
     if not text then return 0 end
     if exclude then
         for _, ex in ipairs(exclude) do
@@ -524,7 +564,21 @@ local function extract_value(text, patterns, exclude)
     end
     for _, pat in ipairs(patterns) do
         local val = text:match(pat)
-        if val then return tonumber(val) or 0 end
+        if val then
+            local n = tonumber(val) or 0
+            -- Every pattern captures a bare (%d+), so the sign the game wrote
+            -- is thrown away by the capture itself. For a stat that only ever
+            -- goes one way that is harmless (the `negative` flag re-applies it
+            -- at display time), but Enmity genuinely goes both ways: 42 items
+            -- in this inventory carry Enmity-N and 21 carry Enmity+N, and all
+            -- 63 were being added as positive. A set with Enmity-12 reported
+            -- +12 -- not just the wrong number, the wrong direction.
+            --
+            -- Recover it from the pattern: one written to capture after a
+            -- literal minus describes a reduction.
+            if signed and pat:find('%-(%d+)', 1, true) then n = -n end
+            return n
+        end
     end
     return 0
 end
@@ -574,12 +628,33 @@ local function parse_item_stats(item)
         end
     end
 
+    -- FFXI writes pet bonuses as a single prefixed run: "Pet: HP+20 VIT+3".
+    -- Only the FIRST stat sits directly after the prefix, so a pattern like
+    -- 'Pet: VIT%s*%+(%d+)' matches HP and never sees VIT. Re-emit each stat
+    -- in the run as its own prefixed line so every one is picked up.
+    local extra = {}
+    for _, line in ipairs(lines) do
+        local tail = line:match('Pet:%s*(.+)')
+        if tail then
+            for raw, sign, num in tail:gmatch('([%a%.%s]+)([%+%-])(%d+)') do
+                local nm = raw:gsub('^%s+', ''):gsub('%s+$', '')
+                if nm ~= '' then
+                    extra[#extra + 1] = 'Pet: ' .. nm .. sign .. num
+                end
+            end
+        end
+    end
+    for _, l in ipairs(extra) do table.insert(lines, l) end
+
     for _, def in ipairs(stat_defs) do
         local total = 0
         for _, line in ipairs(lines) do
-            total = total + extract_value(line, def.patterns, def.exclude)
+            total = total + extract_value(line, def.patterns, def.exclude, def.signed)
         end
-        if total > 0 then
+        -- ~= 0, not > 0: a signed stat that nets negative is a real result and
+        -- used to be discarded here, so a DPS set full of Enmity-N reported
+        -- nothing at all.
+        if total ~= 0 then
             stats[def.key] = (stats[def.key] or 0) + total
         end
     end
@@ -614,8 +689,14 @@ function stat_parser.get_display_stats(totals)
     local result = {}
     for _, def in ipairs(stat_defs) do
         local val = totals[def.key] or 0
-        if val > 0 then
-            local display_val = def.negative and ('-' .. val) or ('+' .. val)
+        if val ~= 0 then
+            local display_val
+            if def.signed then
+                -- val already carries its own sign; don't prepend a second one
+                display_val = (val > 0 and '+' or '') .. val
+            else
+                display_val = def.negative and ('-' .. val) or ('+' .. val)
+            end
             local cap_text = ''
             if def.cap then
                 if val >= def.cap then
@@ -936,7 +1017,8 @@ function stat_parser.format_total_summary(totals)
 
     local has_def =
         (totals.pdt or 0) > 0 or (totals.mdt or 0) > 0 or
-        (totals.dt or 0) > 0  or (totals.meva or 0) > 0
+        (totals.dt or 0) > 0  or (totals.meva or 0) > 0 or
+        (totals.enmity or 0) ~= 0
     if has_def then
         table.insert(lines, '')
         table.insert(lines, '-- Defense --')
@@ -948,6 +1030,12 @@ function stat_parser.format_total_summary(totals)
         if (totals.pdt  or 0) > 0 then row[#row+1] = string.format('PDT -%d%%',  totals.pdt)  end
         if (totals.mdt  or 0) > 0 then row[#row+1] = string.format('MDT -%d%%',  totals.mdt)  end
         if (totals.dt   or 0) > 0 then row[#row+1] = string.format('DT  -%d%%',  totals.dt)   end
+        -- Enmity belongs on this row and was missing entirely from the
+        -- summary. ~= 0, because for most jobs the useful total is negative
+        -- and a > 0 test would hide exactly the sets people build for it.
+        if (totals.enmity or 0) ~= 0 then
+            row[#row+1] = string.format('Enmity %+d', totals.enmity)
+        end
         if #row > 0 then table.insert(lines, table.concat(row, '  ')) end
         if (totals.meva or 0) > 0 then
             table.insert(lines, string.format('MEva %d', totals.meva))
