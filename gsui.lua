@@ -193,8 +193,30 @@ local defaults = {
     --   key      = single character or DIK name (lowercase)
     hotkey_modifier = 'alt',
     hotkey_key      = 'g',
+    -- Set once the stale legacy B binding below has been cleared, so that a
+    -- deliberate //gsui changekey b afterwards is respected rather than
+    -- cleared again on the next load.
+    legacy_b_cleared = false,
 }
 local settings = config.load(defaults)
+
+-- One-time cleanup of a stale legacy toggle on B (DIK 48).
+--
+-- Older GSUI builds shipped with the bare-key toggle on B, and that value was
+-- written into data/settings.xml under <global> by the save above. The
+-- default has been 0 (disabled) for a long time, but a stored value wins over
+-- the default, so every character without its own override kept inheriting
+-- B. Two symptoms: plain B opened GSUI whenever the chat bar was closed, and
+-- Alt+B -- FFXIAzureSets' toggle -- opened GSUI as well.
+--
+-- settings.xml is per install and not synced, so fixing the file on one
+-- machine left the other one broken; doing it here fixes every install.
+local _announce_b_cleared = false
+if settings.toggle_key_dik == 48 and not settings.legacy_b_cleared then
+    settings.toggle_key_dik = 0
+    settings.legacy_b_cleared = true
+    _announce_b_cleared = true
+end
 config.save(settings)
 
 -- DIK (DirectInput) scancode lookup for the //gsui togglekey command.
@@ -2032,7 +2054,28 @@ end
 -- but new installs default toggle_key_dik = 0 (disabled) and use the
 -- libs/hotkey.lua modifier system instead.
 local _capture_pending = false   -- set true by //gsui changekey capture
+
+-- Modifier keys currently held, tracked from their own key events. DirectInput
+-- scancodes: Ctrl 29/157, Shift 42/54, Alt 56/184.
+--
+-- The legacy toggle used to compare only the key code, so it could not tell
+-- B from Alt+B and fired on both -- colliding with every other addon's
+-- modifier hotkey on the same letter. Tracking the modifiers directly avoids
+-- depending on the layout of the event's `flags` argument.
+local MODIFIER_DIKS = { [29]=true, [157]=true, [42]=true, [54]=true, [56]=true, [184]=true }
+local _mods_held = {}
+local function any_modifier_held()
+    for _ in pairs(_mods_held) do return true end
+    return false
+end
+
 windower.register_event('keyboard', function(dik, pressed, flags, blocked)
+    -- Track modifiers BEFORE the early returns below, or a release would be
+    -- missed and a modifier would appear stuck down.
+    if MODIFIER_DIKS[dik] then
+        _mods_held[dik] = pressed and true or nil
+        return false
+    end
     if blocked then return false end
     if not pressed then return false end
     -- Capture mode: next physical key press becomes the new LEGACY binding.
@@ -2049,6 +2092,9 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
     end
     local bound = settings.toggle_key_dik or 0
     if bound == 0 then return false end   -- legacy hotkey disabled
+    -- A bare-key toggle means the bare key. Alt/Ctrl/Shift+key belongs to
+    -- modifier hotkeys, GSUI's own and other addons'.
+    if any_modifier_held() then return false end
     local info = windower.ffxi.get_info()
     if not info or info.chat_open then return false end
     if dik == bound then
@@ -2059,6 +2105,13 @@ windower.register_event('keyboard', function(dik, pressed, flags, blocked)
 end)
 
 windower.register_event('login', function()
+    if _announce_b_cleared then
+        _announce_b_cleared = false
+        coroutine.schedule(function()
+            windower.add_to_chat(207, 'GSUI: removed the old bare "B" toggle key -- Alt+G opens GSUI. '
+                .. 'To bring B back: //gsui changekey b')
+        end, 8)
+    end
     coroutine.schedule(initialize, 5)
 end)
 
