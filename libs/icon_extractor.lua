@@ -84,10 +84,14 @@ for i = 0x000, 0x0FF do
 end
 
 --[[
-3072 bytes per icon
-640 bytes for stats, string table, etc.
-2432 bytes for pixel data
+5120 bytes (0x1400) per item record -- it was 3072 (0xC00) before a game
+update grew the item DATs. With the old size every record past the first
+lands in the wrong place, so any icon extracted after the update came out
+blank or showed another item. The icon still starts 0x2BD into the record:
+palette 0x400 bytes, then 0x400 bytes of pixel indices.
 --]]
+local ITEM_RECORD_SIZE = 0x1400
+local ITEM_ICON_OFFSET = 0x2BD
 
 local item_dat_map = {
     [1]={min=0x0001, max=0x0FFF, dat_path='118/106', offset=-1}, -- General Items
@@ -108,7 +112,7 @@ local item_by_id = function (id, output_path)
     local icon_file = open_dat(dat_stats)
     
     local id_offset = dat_stats.min + dat_stats.offset
-    icon_file:seek('set', (id - id_offset) * 0xC00 + 0x2BD)
+    icon_file:seek('set', (id - id_offset) * ITEM_RECORD_SIZE + ITEM_ICON_OFFSET)
     local data = icon_file:read(0x800)
 
     bmp = convert_item_icon_to_bmp(data)
