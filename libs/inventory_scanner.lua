@@ -859,10 +859,34 @@ function inventory_scanner.find_active_filters(items, mode)
     -- ------------------------------------------------------------------
     local ja_names = current_job_abilities()
 
+    -- Every spell and ability name in the game, so the description scan's
+    -- finds can be judged against the job actually being played.
+    local any_spell, any_ability = {}, {}
+    for _, sp in pairs(res.spells or {}) do
+        if sp.en then any_spell[sp.en] = true end
+    end
+    for _, a in pairs(res.job_abilities or {}) do
+        if a.en then any_ability[a.en] = true end
+    end
+
     local abilities, stats = {}, {}
     for _, f in ipairs(matched) do
+        -- A filter the description scan invented, as opposed to one from the
+        -- master stat list. Only these get judged below; the master list is
+        -- hand-written and stays whole, which is why Haste / Refresh / Regen
+        -- survive. Those are stat lines on gear ("Haste+3%"), not the spells
+        -- that share their names.
+        local from_scan = type(f.pattern) == 'table' and f.pattern.quoted
         if ja_names[f.name] then
             abilities[#abilities + 1] = f
+        elseif from_scan and any_spell[f.name] then
+            -- A spell name. Dropped: spell-specific gear is already covered by
+            -- the stat filters (Cure Potency, Regen, Refresh ...) and listing
+            -- the spell as well only lengthens a menu that is 15 rows tall.
+        elseif from_scan and any_ability[f.name] then
+            -- Another job's ability. Real gear text, but useless while you are
+            -- not on that job: a WHM has no use for Berserk, Mug or Sentinel
+            -- sitting in the list. It reappears when you change job.
         else
             stats[#stats + 1] = f
         end
