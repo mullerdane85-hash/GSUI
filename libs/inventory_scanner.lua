@@ -759,31 +759,17 @@ local function current_job_abilities()
     return out
 end
 
--- Every spell the player KNOWS that the current main or sub job can actually
--- cast. get_spells() returns everything ever learned across all jobs, so it
--- has to be intersected with res.spells[id].levels for the equipped pair --
--- otherwise a WHM sees their BLM nukes in the list.
-local function current_job_spells()
-    local out = {}
-    local ok_s, known = pcall(function() return windower.ffxi.get_spells() end)
-    if not ok_s or type(known) ~= 'table' then return out end
-    local main_id, sub_id
-    local ok_p, p = pcall(function() return windower.ffxi.get_player() end)
-    if ok_p and type(p) == 'table' then
-        main_id, sub_id = p.main_job_id, p.sub_job_id
-    end
-    for id, is_known in pairs(known) do
-        if is_known then
-            local sp = res.spells and res.spells[id]
-            if sp and sp.en and type(sp.levels) == 'table' then
-                if (main_id and sp.levels[main_id]) or (sub_id and sp.levels[sub_id]) then
-                    out[sp.en] = true
-                end
-            end
-        end
-    end
-    return out
-end
+-- There is deliberately no spell enumeration here. Listing every castable
+-- spell was tried and removed: it put ~240 entries in the dropdown on WHM
+-- against roughly a dozen that any owned gear could actually match, and a
+-- 15-row menu cannot be navigated at that length. Job abilities stay listed
+-- in full because a job has ten or twenty of them, not hundreds.
+--
+-- Spell-specific gear is still reachable. The description scan above picks
+-- the name straight off the item ('"Cure" potency +22%', '"Regen" effect
+-- duration +26'), so anything your gear actually mentions appears under
+-- Stats with real matches behind it. What is gone is the long tail of
+-- spells nothing you own refers to.
 
 function inventory_scanner.find_active_filters(items, mode)
     local matched = {}
@@ -871,15 +857,12 @@ function inventory_scanner.find_active_filters(items, mode)
     -- An empty result is a useful answer -- it means "you own nothing for
     -- this" -- and the entry starts working the moment a piece is acquired.
     -- ------------------------------------------------------------------
-    local ja_names    = current_job_abilities()
-    local spell_names = current_job_spells()
+    local ja_names = current_job_abilities()
 
-    local abilities, spells, stats = {}, {}, {}
+    local abilities, stats = {}, {}
     for _, f in ipairs(matched) do
         if ja_names[f.name] then
             abilities[#abilities + 1] = f
-        elseif spell_names[f.name] then
-            spells[#spells + 1] = f
         else
             stats[#stats + 1] = f
         end
@@ -892,19 +875,11 @@ function inventory_scanner.find_active_filters(items, mode)
             seen_names[name:lower()] = true
         end
     end
-    for name in pairs(spell_names) do
-        if not seen_names[name:lower()] then
-            spells[#spells + 1] = { name = name, pattern = { quoted = name } }
-            seen_names[name:lower()] = true
-        end
-    end
-
     -- Case-insensitive, so "Sacred Trust" sorts next to "Sacrosanctity"
     -- instead of after every capitalised entry (Lua's < is byte order, which
     -- puts every uppercase letter ahead of every lowercase one).
     local function by_name(a, b) return a.name:lower() < b.name:lower() end
     table.sort(abilities, by_name)
-    table.sort(spells,    by_name)
     table.sort(stats,     by_name)
 
     local active = {{ name = 'All', pattern = nil }}
@@ -914,7 +889,6 @@ function inventory_scanner.find_active_filters(items, mode)
         for _, f in ipairs(list) do table.insert(active, f) end
     end
     add_section('-- Job Abilities --', abilities)
-    add_section('-- Spells --',        spells)
     add_section('-- Stats --',         stats)
     -- Slot filters belong to Organizer mode only -- in GearSwap mode
     -- the user already has the 16-icon equip grid which they can click
